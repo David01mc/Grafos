@@ -1,0 +1,303 @@
+<!-- templates/index.html -->
+{% extends "base.html" %}
+
+{% block title %}Grafo de Mi Red Social{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="text-center mb-4">🌐 Mi Red Social Interactiva</h1>
+            
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <h4 id="total-personas">-</h4>
+                        <p class="mb-0">👥 Personas</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <h4 id="total-conexiones">-</h4>
+                        <p class="mb-0">🔗 Conexiones</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <h4 id="densidad-red">-</h4>
+                        <p class="mb-0">📊 Densidad</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <h4 id="mas-conectado">-</h4>
+                        <p class="mb-0">👑 Más Conectado</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="network-container" id="network"></div>
+        </div>
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-12 text-center">
+            <button class="btn btn-primary btn-custom me-2" onclick="centrarRed()">🎯 Centrar</button>
+            <button class="btn btn-success btn-custom me-2" onclick="togglePhysics()">⚡ Toggle Física</button>
+            <button class="btn btn-info btn-custom me-2" onclick="randomizePositions()">🎲 Aleatorio</button>
+            <button class="btn btn-warning btn-custom me-2" onclick="recargarDatos()">🔄 Recargar</button>
+            <a href="{{ url_for('admin') }}" class="btn btn-secondary btn-custom">⚙️ Administrar</a>
+        </div>
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="admin-panel">
+                <h5>🎮 Instrucciones de Uso:</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <ul class="mb-0">
+                            <li><strong>Arrastrar:</strong> Mueve los nodos para reorganizar la red</li>
+                            <li><strong>Zoom:</strong> Usa la rueda del ratón para acercar/alejar</li>
+                            <li><strong>Click:</strong> Selecciona nodos para ver información detallada</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <ul class="mb-0">
+                            <li><strong>Hover:</strong> Pasa el ratón sobre conexiones para ver detalles</li>
+                            <li><strong>Admin:</strong> Ve al panel de administración para gestionar datos</li>
+                            <li><strong>Colores:</strong> Los nodos se colorean por grupos sociales</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Panel de estado para debug -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="admin-panel">
+                <h5>🔍 Estado del Sistema:</h5>
+                <p id="estado-sistema">Iniciando...</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Variables globales
+let network;
+let physicsEnabled = true;
+let nodes, edges;
+
+function actualizarEstado(mensaje) {
+    const el = document.getElementById('estado-sistema');
+    if (el) {
+        el.textContent = mensaje;
+        console.log(mensaje);
+    }
+}
+
+async function cargarDatos() {
+    try {
+        actualizarEstado('🔄 Cargando datos desde la API...');
+        
+        const response = await fetch('/api/grafo');
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        
+        actualizarEstado(`✅ Datos cargados: ${data.nodes.length} personas, ${data.edges.length} conexiones`);
+        
+        // Actualizar estadísticas
+        document.getElementById('total-personas').textContent = data.nodes.length;
+        document.getElementById('total-conexiones').textContent = data.edges.length;
+        
+        // Calcular densidad (corregido)
+        const totalNodos = data.nodes.length;
+        const maxPosiblesConexiones = totalNodos > 1 ? (totalNodos * (totalNodos - 1)) / 2 : 0;
+        const densidad = maxPosiblesConexiones > 0 ? ((data.edges.length / maxPosiblesConexiones) * 100).toFixed(1) : 0;
+        document.getElementById('densidad-red').textContent = densidad + '%';
+        
+        // Encontrar el más conectado (corregido)
+        const contadorConexiones = {};
+        data.edges.forEach(edge => {
+            contadorConexiones[edge.from] = (contadorConexiones[edge.from] || 0) + 1;
+            contadorConexiones[edge.to] = (contadorConexiones[edge.to] || 0) + 1;
+        });
+        
+        let personaMasConectada = '';
+        let mayorNumeroConexiones = 0;
+        for (const [nodeId, numConexiones] of Object.entries(contadorConexiones)) {
+            if (numConexiones > mayorNumeroConexiones) {
+                mayorNumeroConexiones = numConexiones;
+                const nodo = data.nodes.find(n => n.id == nodeId);
+                personaMasConectada = nodo ? nodo.label.replace(/[^a-zA-ZÀ-ÿ\s]/g, '').trim() : '';
+            }
+        }
+        document.getElementById('mas-conectado').textContent = personaMasConectada;
+        
+        return data;
+    } catch (error) {
+        console.error('Error cargando datos:', error);
+        actualizarEstado(`❌ Error cargando datos: ${error.message}`);
+        return { nodes: [], edges: [] };
+    }
+}
+
+async function inicializarRed() {
+    // Verificar vis.js
+    if (typeof vis === 'undefined') {
+        actualizarEstado('❌ vis.js no está cargado');
+        return;
+    }
+    
+    actualizarEstado('✅ vis.js detectado, cargando datos...');
+    
+    const data = await cargarDatos();
+    
+    if (data.nodes.length === 0) {
+        actualizarEstado('❌ No hay datos para mostrar');
+        return;
+    }
+    
+    try {
+        const container = document.getElementById('network');
+        if (!container) {
+            actualizarEstado('❌ No se encontró el contenedor del grafo');
+            return;
+        }
+        
+        actualizarEstado('🎨 Creando visualización...');
+        
+        nodes = new vis.DataSet(data.nodes);
+        edges = new vis.DataSet(data.edges);
+        
+        const options = {
+            physics: {
+                enabled: true,
+                stabilization: { iterations: 100 },
+                barnesHut: {
+                    gravitationalConstant: -8000,
+                    centralGravity: 0.3,
+                    springLength: 95,
+                    springConstant: 0.04,
+                    damping: 0.09
+                }
+            },
+            interaction: {
+                hover: true,
+                tooltipDelay: 200,
+                hideEdgesOnDrag: false
+            },
+            edges: {
+                smooth: {
+                    type: "continuous"
+                },
+                font: { color: '#333', size: 12 }
+            },
+            nodes: {
+                borderWidth: 2,
+                shadow: true,
+                font: { color: 'white', size: 14 }
+            }
+        };
+        
+        network = new vis.Network(container, { nodes, edges }, options);
+        
+        // Eventos
+        network.on("click", function (params) {
+            if (params.nodes.length > 0) {
+                const nodeId = params.nodes[0];
+                const node = nodes.get(nodeId);
+                alert(`🎯 ${node.label}\n\nGrupo: ${node.grupo}\nID: ${node.id}`);
+            }
+        });
+        
+        network.on("hoverNode", function () {
+            document.body.style.cursor = 'pointer';
+        });
+        
+        network.on("blurNode", function () {
+            document.body.style.cursor = 'default';
+        });
+        
+        // Centrar después de la estabilización
+        network.once("stabilizationIterationsDone", function() {
+            network.fit();
+            actualizarEstado('✅ ¡Grafo listo y funcionando!');
+        });
+        
+        actualizarEstado('⚡ Inicializando física del grafo...');
+        
+    } catch (error) {
+        console.error('Error inicializando red:', error);
+        actualizarEstado(`❌ Error: ${error.message}`);
+    }
+}
+
+function centrarRed() {
+    if (network) {
+        network.fit();
+        actualizarEstado('🎯 Vista centrada');
+    }
+}
+
+function togglePhysics() {
+    if (network) {
+        physicsEnabled = !physicsEnabled;
+        network.setOptions({ physics: { enabled: physicsEnabled } });
+        actualizarEstado(`⚡ Física ${physicsEnabled ? 'activada' : 'desactivada'}`);
+    }
+}
+
+function randomizePositions() {
+    if (nodes) {
+        const updates = [];
+        nodes.forEach(node => {
+            updates.push({
+                id: node.id,
+                x: Math.random() * 800 - 400,
+                y: Math.random() * 600 - 300
+            });
+        });
+        nodes.update(updates);
+        actualizarEstado('🎲 Posiciones aleatorizadas');
+    }
+}
+
+async function recargarDatos() {
+    actualizarEstado('🔄 Recargando todo...');
+    await inicializarRed();
+}
+
+// Inicializar cuando se carga la página
+document.addEventListener('DOMContentLoaded', function() {
+    actualizarEstado('📄 DOM cargado');
+    
+    // Esperar un poco para que vis.js se cargue completamente
+    setTimeout(() => {
+        inicializarRed();
+    }, 1000);
+});
+
+// Verificación adicional
+window.addEventListener('load', function() {
+    setTimeout(() => {
+        if (!network) {
+            actualizarEstado('🔄 Reintentando inicialización...');
+            inicializarRed();
+        }
+    }, 2000);
+});
+</script>
+{% endblock %}
