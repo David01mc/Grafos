@@ -1,63 +1,18 @@
 <!-- templates/index.html -->
 {% extends "base.html" %}
 
-{% block title %}Grafo de Mi Red Social{% endblock %}
+{% block title %}Análisis de Red de Relaciones{% endblock %}
 
 {% block content %}
 <div class="main-container">
     <div class="row">
         <div class="col-12">
-            <h1 class="text-center mb-4">🌐 Mi Red Social Interactiva</h1>
+            <h1 class="text-center mb-4">
+                <i class="icon icon-network icon-xl"></i>
+                Análisis de Red de Relaciones
+            </h1>
             
             <div class="row mb-4">
-                <div class="col-md-3">
-                    <div class="stats-card">
-                        <h4 id="total-personas">-</h4>
-                        <p class="mb-0">👥 Personas</p>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="stats-card">
-                        <h4 id="total-conexiones">-</h4>
-                        <p class="mb-0">🔗 Conexiones</p>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="stats-card">
-                        <h4 id="densidad-red">-</h4>
-                        <p class="mb-0">📊 Densidad</p>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="stats-card">
-                        <h4 id="mas-conectado">-</h4>
-                        <p class="mb-0">👑 Más Conectado</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="row">
-        <div class="col-12">
-            <div class="network-container" id="network"></div>
-        </div>
-    </div>
-    
-    <div class="row mt-4">
-        <div class="col-12 text-center">
-            <button class="btn btn-primary btn-custom me-2" onclick="centrarRed()">🎯 Centrar</button>
-            <button class="btn btn-success btn-custom me-2" onclick="togglePhysics()">⚡ Toggle Física</button>
-            <button class="btn btn-info btn-custom me-2" onclick="randomizePositions()">🎲 Aleatorio</button>
-            <button class="btn btn-warning btn-custom me-2" onclick="recargarDatos()">🔄 Recargar</button>
-            <a href="{{ url_for('admin') }}" class="btn btn-secondary btn-custom">⚙️ Administrar</a>
-        </div>
-    </div>
-    
-    <div class="row mt-4">
-        <div class="col-12">
-            <div class="admin-panel">
-                <h5>🎮 Instrucciones de Uso:</h5>
                 <div class="row">
                     <div class="col-md-6">
                         <ul class="mb-0">
@@ -69,8 +24,8 @@
                     <div class="col-md-6">
                         <ul class="mb-0">
                             <li><strong>Hover:</strong> Pasa el ratón sobre conexiones para ver detalles</li>
-                            <li><strong>Admin:</strong> Ve al panel de administración para gestionar datos</li>
-                            <li><strong>Colores:</strong> Los nodos se colorean por grupos sociales</li>
+                            <li><strong>Administración:</strong> Gestiona contactos y relaciones</li>
+                            <li><strong>Colores:</strong> Los nodos se agrupan por categorías</li>
                         </ul>
                     </div>
                 </div>
@@ -82,8 +37,11 @@
     <div class="row mt-4">
         <div class="col-12">
             <div class="admin-panel">
-                <h5>🔍 Estado del Sistema:</h5>
-                <p id="estado-sistema">Iniciando...</p>
+                <h5>
+                    <i class="icon icon-settings"></i>
+                    Estado del Sistema:
+                </h5>
+                <p id="estado-sistema">Iniciando análisis de red...</p>
             </div>
         </div>
     </div>
@@ -116,7 +74,7 @@ async function cargarDatos() {
         
         const data = await response.json();
         
-        actualizarEstado(`✅ Datos cargados: ${data.nodes.length} personas, ${data.edges.length} conexiones`);
+        actualizarEstado(`✅ Datos cargados: ${data.nodes.length} contactos, ${data.edges.length} conexiones`);
         
         // Actualizar estadísticas
         document.getElementById('total-personas').textContent = data.nodes.length;
@@ -219,7 +177,7 @@ async function inicializarRed() {
             if (params.nodes.length > 0) {
                 const nodeId = params.nodes[0];
                 const node = nodes.get(nodeId);
-                alert(`🎯 ${node.label}\n\nGrupo: ${node.grupo}\nID: ${node.id}`);
+                alert(`📊 Información del contacto: ${node.label}\n\nGrupo: ${node.grupo}\nID: ${node.id}`);
             }
         });
         
@@ -234,10 +192,10 @@ async function inicializarRed() {
         // Centrar después de la estabilización
         network.once("stabilizationIterationsDone", function() {
             network.fit();
-            actualizarEstado('✅ ¡Grafo listo y funcionando!');
+            actualizarEstado('✅ ¡Red de relaciones lista y funcionando!');
         });
         
-        actualizarEstado('⚡ Inicializando física del grafo...');
+        actualizarEstado('⚡ Inicializando análisis de red...');
         
     } catch (error) {
         console.error('Error inicializando red:', error);
@@ -271,18 +229,18 @@ function randomizePositions() {
             });
         });
         nodes.update(updates);
-        actualizarEstado('🎲 Posiciones aleatorizadas');
+        actualizarEstado('🔄 Red reorganizada');
     }
 }
 
 async function recargarDatos() {
-    actualizarEstado('🔄 Recargando todo...');
+    actualizarEstado('🔄 Recargando análisis completo...');
     await inicializarRed();
 }
 
 // Inicializar cuando se carga la página
 document.addEventListener('DOMContentLoaded', function() {
-    actualizarEstado('📄 DOM cargado');
+    actualizarEstado('📄 Sistema iniciado');
     
     // Esperar un poco para que vis.js se cargue completamente
     setTimeout(() => {
@@ -300,4 +258,4 @@ window.addEventListener('load', function() {
     }, 2000);
 });
 </script>
-{% endblock %}
+{% endblock %}="col-md-3">
