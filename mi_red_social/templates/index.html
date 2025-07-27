@@ -45,7 +45,7 @@
         </div>
         <div class="col-md-3">
             <div class="stats-card">
-                <h4 id="mas-conectado" style="font-size: 1.5rem;">Cargando...</h4>
+                <h4 id="mas-conectado" style="font-size: 1.2rem; line-height: 1.2; min-height: 2.5rem; display: flex; align-items: center; justify-content: center;">Cargando...</h4>
                 <p class="mb-0">
                     <i class="icon icon-crown icon-white"></i>
                     Más Conectado
@@ -175,22 +175,45 @@ async function cargarDatos() {
         const densidad = maxPosiblesConexiones > 0 ? ((data.edges.length / maxPosiblesConexiones) * 100).toFixed(1) : 0;
         document.getElementById('densidad-red').textContent = densidad + '%';
         
-        // Encontrar el más conectado
-        const contadorConexiones = {};
-        data.edges.forEach(edge => {
-            contadorConexiones[edge.from] = (contadorConexiones[edge.from] || 0) + 1;
-            contadorConexiones[edge.to] = (contadorConexiones[edge.to] || 0) + 1;
-        });
-        
-        let personaMasConectada = 'Ninguno';
-        let mayorNumeroConexiones = 0;
-        for (const [nodeId, numConexiones] of Object.entries(contadorConexiones)) {
-            if (numConexiones > mayorNumeroConexiones) {
-                mayorNumeroConexiones = numConexiones;
-                const nodo = data.nodes.find(n => n.id == nodeId);
-                personaMasConectada = nodo ? nodo.label.replace(/[^a-zA-ZÀ-ÿ\s]/g, '').trim() : 'Sin nombre';
+        // Calcular persona más conectada
+        let personaMasConectada = 'Ninguna';
+        if (data.nodes.length > 0) {
+            const conteoConexiones = {};
+            
+            // Inicializar conteo
+            data.nodes.forEach(node => {
+                conteoConexiones[node.id] = 0;
+            });
+            
+            // Contar conexiones
+            data.edges.forEach(edge => {
+                if (conteoConexiones.hasOwnProperty(edge.from)) {
+                    conteoConexiones[edge.from]++;
+                }
+                if (conteoConexiones.hasOwnProperty(edge.to)) {
+                    conteoConexiones[edge.to]++;
+                }
+            });
+            
+            // Encontrar el más conectado
+            let maxConexiones = 0;
+            let nodeIdMasConectado = null;
+            
+            for (const [nodeId, conexiones] of Object.entries(conteoConexiones)) {
+                if (conexiones > maxConexiones) {
+                    maxConexiones = conexiones;
+                    nodeIdMasConectado = nodeId;
+                }
+            }
+            
+            if (nodeIdMasConectado) {
+                const nodeMasConectado = data.nodes.find(node => node.id == nodeIdMasConectado);
+                if (nodeMasConectado && nodeMasConectado.label) {
+                    personaMasConectada = nodeMasConectado.label.replace(/<[^>]*>/g, '').trim();
+                }
             }
         }
+        
         document.getElementById('mas-conectado').textContent = personaMasConectada;
         
         return data;
@@ -234,13 +257,19 @@ async function inicializarRed() {
         const options = {
             physics: {
                 enabled: true,
-                stabilization: { iterations: 100 },
+                stabilization: { 
+                    iterations: 150,
+                    updateInterval: 25,
+                    onlyDynamicEdges: false,
+                    fit: true 
+                },
                 barnesHut: {
                     gravitationalConstant: -8000,
                     centralGravity: 0.3,
                     springLength: 95,
                     springConstant: 0.04,
-                    damping: 0.09
+                    damping: 0.09,
+                    avoidOverlap: 0.1
                 }
             },
             interaction: {
@@ -282,12 +311,25 @@ async function inicializarRed() {
         // Crear la red
         network = new vis.Network(container, { nodes, edges }, options);
         
+        // Variable para controlar si ya se mostró el mensaje de éxito
+        let redLista = false;
+        
+        // Función para marcar la red como lista
+        function marcarRedLista() {
+            if (!redLista) {
+                redLista = true;
+                network.fit();
+                actualizarEstado('✅ ¡Red de relaciones lista y funcionando!');
+            }
+        }
+        
         // Eventos
         network.on("click", function (params) {
             if (params.nodes.length > 0) {
                 const nodeId = params.nodes[0];
                 const node = nodes.get(nodeId);
-                alert(`📊 Información del contacto:\n\n${node.label}\n\nGrupo: ${node.group || 'Sin grupo'}\nID: ${node.id}`);
+                const label = node.label ? node.label.replace(/<[^>]*>/g, '').trim() : 'Sin nombre';
+                alert(`📊 Información del contacto:\n\n${label}\n\nGrupo: ${node.group || 'Sin grupo'}\nID: ${node.id}`);
             }
         });
         
@@ -306,11 +348,14 @@ async function inicializarRed() {
             }
         });
         
-        // Centrar después de la estabilización
-        network.once("stabilizationIterationsDone", function() {
-            network.fit();
-            actualizarEstado('✅ ¡Red de relaciones lista y funcionando!');
+        // Múltiples eventos para asegurar que la red se marque como lista
+        network.once("stabilizationIterationsDone", marcarRedLista);
+        network.once("afterDrawing", function() {
+            setTimeout(marcarRedLista, 500);
         });
+        
+        // Backup: actualizar estado después de un tiempo si nada más funciona
+        setTimeout(marcarRedLista, 3000);
         
         actualizarEstado('⚡ Inicializando física de la red...');
         

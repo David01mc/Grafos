@@ -69,30 +69,12 @@
                     <div class="mb-3 mt-3">
                         <label class="form-label">Grupo Social</label>
                         <select class="form-control" name="grupo">
-                            <option value="amigos">
-                                <i class="icon icon-users"></i>
-                                👫 Amigos
-                            </option>
-                            <option value="familia_cercana">
-                                <i class="icon icon-family"></i>
-                                👨‍👩‍👧‍👦 Familia Cercana
-                            </option>
-                            <option value="trabajo">
-                                <i class="icon icon-briefcase"></i>
-                                💼 Trabajo
-                            </option>
-                            <option value="universidad">
-                                <i class="icon icon-academic"></i>
-                                🎓 Universidad
-                            </option>
-                            <option value="deportes">
-                                <i class="icon icon-fitness"></i>
-                                ⚽ Deportes
-                            </option>
-                            <option value="vecinos">
-                                <i class="icon icon-home"></i>
-                                🏠 Vecinos
-                            </option>
+                            <option value="amigos">👫 Amigos</option>
+                            <option value="familia_cercana">👨‍👩‍👧‍👦 Familia Cercana</option>
+                            <option value="trabajo">💼 Trabajo</option>
+                            <option value="universidad">🎓 Universidad</option>
+                            <option value="deportes">⚽ Deportes</option>
+                            <option value="vecinos">🏠 Vecinos</option>
                             <option value="nuevo">✨ Nuevo</option>
                         </select>
                     </div>
@@ -125,9 +107,116 @@
                                 {% for persona in personas %}
                                 <option value="{{ persona.id }}">{{ persona.emoji }} {{ persona.nombre }}</option>
                                 {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Persona 2 *</label>
+                            <select class="form-control" name="persona2_id" required>
+                                <option value="">Seleccionar...</option>
+                                {% for persona in personas %}
+                                <option value="{{ persona.id }}">{{ persona.emoji }} {{ persona.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Tipo de Relación</label>
+                            <select class="form-control" name="tipo">
+                                <option value="amistad">👫 Amistad</option>
+                                <option value="mejor_amigo">💖 Mejor Amigo/a</option>
+                                <option value="familia">👨‍👩‍👧‍👦 Familia</option>
+                                <option value="trabajo">💼 Trabajo</option>
+                                <option value="universidad">🎓 Universidad</option>
+                                <option value="deportes">⚽ Deportes</option>
+                                <option value="vecinos">🏠 Vecinos</option>
+                                <option value="pareja">💕 Pareja</option>
+                                <option value="conocidos">🤝 Conocidos</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Fortaleza (1-10)</label>
+                            <input type="number" class="form-control" name="fortaleza" min="1" max="10" value="5">
+                            <small class="text-muted">1=Débil, 10=Muy fuerte</small>
+                        </div>
+                    </div>
+                    <div class="mb-3 mt-3">
+                        <label class="form-label">Contexto</label>
+                        <input type="text" class="form-control" name="contexto" placeholder="Ej: Se conocieron en el gimnasio">
+                        <small class="text-muted">¿Cómo se conocen o relacionan?</small>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-custom w-100">
+                        <i class="icon icon-link icon-white"></i>
+                        Crear Relación
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Lista de personas existentes -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="admin-panel">
+                <h4>
+                    <i class="icon icon-users"></i>
+                    Personas en tu Red ({{ personas|length }})
+                </h4>
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>ID</th>
+                                <th>Persona</th>
+                                <th>Grupo</th>
+                                <th>Descripción</th>
+                                <th>Fecha Agregada</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for persona in personas %}
+                            <tr>
+                                <td><span class="badge bg-light text-dark">{{ persona.id }}</span></td>
+                                <td>
+                                    <span style="color: {{ persona.color }}; font-size: 1.2em">{{ persona.emoji }}</span>
+                                    <strong>{{ persona.nombre }}</strong>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ persona.grupo.replace('_', ' ').title() }}</span>
+                                </td>
+                                <td>
+                                    <small>{{ persona.descripcion or 'Sin descripción' }}</small>
+                                </td>
+                                <td>
+                                    <small class="text-muted">{{ persona.fecha_creacion[:10] if persona.fecha_creacion else 'N/A' }}</small>
+                                </td>
+                                <td>
+                                    {% if persona.nombre != 'Tú' %}
+                                    <a href="{{ url_for('eliminar_persona', persona_id=persona.id) }}" 
+                                       class="btn btn-sm btn-danger"
+                                       onclick="return confirm('¿Estás seguro de eliminar a {{ persona.nombre }}? Se eliminarán también todas sus relaciones.')">
+                                       <i class="icon icon-trash icon-white icon-sm"></i>
+                                       Eliminar
+                                    </a>
+                                    {% else %}
+                                    <span class="badge bg-warning text-dark">
+                                        <i class="icon icon-crown icon-sm"></i>
+                                        Centro de la Red
+                                    </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
                         </tbody>
                     </table>
                 </div>
+                
+                {% if personas|length == 0 %}
+                <div class="text-center py-4">
+                    <p class="text-muted">No hay personas agregadas aún. ¡Agrega algunas usando el formulario de arriba!</p>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -368,104 +457,3 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 {% endblock %}
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Persona 2 *</label>
-                            <select class="form-control" name="persona2_id" required>
-                                <option value="">Seleccionar...</option>
-                                {% for persona in personas %}
-                                <option value="{{ persona.id }}">{{ persona.emoji }} {{ persona.nombre }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
-                    <div class="row mt-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Tipo de Relación</label>
-                            <select class="form-control" name="tipo">
-                                <option value="amistad">👫 Amistad</option>
-                                <option value="mejor_amigo">💖 Mejor Amigo/a</option>
-                                <option value="familia">👨‍👩‍👧‍👦 Familia</option>
-                                <option value="trabajo">💼 Trabajo</option>
-                                <option value="universidad">🎓 Universidad</option>
-                                <option value="deportes">⚽ Deportes</option>
-                                <option value="vecinos">🏠 Vecinos</option>
-                                <option value="pareja">💕 Pareja</option>
-                                <option value="conocidos">🤝 Conocidos</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Fortaleza (1-10)</label>
-                            <input type="number" class="form-control" name="fortaleza" min="1" max="10" value="5">
-                            <small class="text-muted">1=Débil, 10=Muy fuerte</small>
-                        </div>
-                    </div>
-                    <div class="mb-3 mt-3">
-                        <label class="form-label">Contexto</label>
-                        <input type="text" class="form-control" name="contexto" placeholder="Ej: Se conocieron en el gimnasio">
-                        <small class="text-muted">¿Cómo se conocen o relacionan?</small>
-                    </div>
-                    <button type="submit" class="btn btn-primary btn-custom w-100">
-                        <i class="icon icon-link icon-white"></i>
-                        Crear Relación
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Lista de personas existentes -->
-    <div class="row mt-4">
-        <div class="col-12">
-            <div class="admin-panel">
-                <h4>
-                    <i class="icon icon-users"></i>
-                    Personas en tu Red ({{ personas|length }})
-                </h4>
-                <div class="table-responsive">
-                    <table class="table table-striped table-hover">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>ID</th>
-                                <th>Persona</th>
-                                <th>Grupo</th>
-                                <th>Descripción</th>
-                                <th>Fecha Agregada</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for persona in personas %}
-                            <tr>
-                                <td><span class="badge bg-light text-dark">{{ persona.id }}</span></td>
-                                <td>
-                                    <span style="color: {{ persona.color }}; font-size: 1.2em">{{ persona.emoji }}</span>
-                                    <strong>{{ persona.nombre }}</strong>
-                                </td>
-                                <td>
-                                    <span class="badge bg-secondary">{{ persona.grupo.replace('_', ' ').title() }}</span>
-                                </td>
-                                <td>
-                                    <small>{{ persona.descripcion or 'Sin descripción' }}</small>
-                                </td>
-                                <td>
-                                    <small class="text-muted">{{ persona.fecha_creacion[:10] if persona.fecha_creacion else 'N/A' }}</small>
-                                </td>
-                                <td>
-                                    {% if persona.nombre != 'Tú' %}
-                                    <a href="{{ url_for('eliminar_persona', persona_id=persona.id) }}" 
-                                       class="btn btn-sm btn-danger"
-                                       onclick="return confirm('¿Estás seguro de eliminar a {{ persona.nombre }}? Se eliminarán también todas sus relaciones.')">
-                                       <i class="icon icon-trash icon-white icon-sm"></i>
-                                       Eliminar
-                                    </a>
-                                    {% else %}
-                                    <span class="badge bg-warning text-dark">
-                                        <i class="icon icon-crown icon-sm"></i>
-                                        Centro de la Red
-                                    </span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% endfor %}
