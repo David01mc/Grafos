@@ -15,26 +15,8 @@
     <!-- Tu CSS personalizado -->
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/base.css') }}">
     
-    <!-- vis.js CSS y JS -->
+    <!-- vis.js CSS -->
     <link rel="stylesheet" type="text/css" href="https://unpkg.com/vis-network/standalone/umd/vis-network.min.css" />
-    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
-    
-    <!-- Fallback alternativo para vis.js -->
-    <script>
-        window.addEventListener('load', function() {
-            if (typeof vis === 'undefined') {
-                console.log('Cargando vis.js desde CDN alternativo...');
-                const script = document.createElement('script');
-                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js';
-                document.head.appendChild(script);
-                
-                const link = document.createElement('link');
-                link.rel = 'stylesheet';
-                link.href = 'https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.css';
-                document.head.appendChild(link);
-            }
-        });
-    </script>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-light navbar-custom">
@@ -79,8 +61,28 @@
         {% block content %}{% endblock %}
     </div>
 
+    <!-- vis.js ANTES de Bootstrap para evitar conflictos -->
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Fallback para vis.js -->
+    <script>
+        // Verificar si vis.js se cargó correctamente
+        if (typeof vis === 'undefined') {
+            console.warn('⚠️ vis.js no se cargó desde el CDN principal, intentando CDN alternativo...');
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js';
+            script.onerror = function() {
+                console.error('❌ Error: No se pudo cargar vis.js desde ningún CDN');
+                alert('Error: No se pudo cargar la librería de visualización. Por favor, recarga la página.');
+            };
+            document.head.appendChild(script);
+        } else {
+            console.log('✅ vis.js cargado correctamente');
+        }
+    </script>
     
     {% block scripts %}{% endblock %}
 </body>
