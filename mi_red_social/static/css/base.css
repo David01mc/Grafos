@@ -1,78 +1,559 @@
-    body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        .main-container {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            margin: 20px;
-            padding: 30px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-        }
-        
-        .network-container {
-            height: 600px;
-            border: 2px solid #dee2e6;
-            border-radius: 15px;
-            background: #f8f9fa;
-        }
-        
-        .admin-panel {
-            background: rgba(248, 249, 250, 0.9);
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-        
-        .btn-custom {
-            border-radius: 25px;
-            padding: 10px 25px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-        
-        .btn-custom:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        }
-        
-        .stats-card {
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            color: white;
-            border-radius: 15px;
-            padding: 20px;
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        
-        .form-control {
-            border-radius: 10px;
-            border: 2px solid #dee2e6;
-            padding: 10px 15px;
-        }
-        
-        .form-control:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-        }
-        
-        .alert {
-            border-radius: 15px;
-            border: none;
-        }
-        
-        .table {
-            border-radius: 15px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        
-        .navbar-custom {
-            background: rgba(255, 255, 255, 0.9) !important;
-            backdrop-filter: blur(10px);
-            border-radius: 0 0 20px 20px;
-            margin-bottom: 20px;
-        }
+/* static/css/base.css - Diseño Profesional Empresarial */
+
+/* ========== VARIABLES CSS ========== */
+:root {
+    /* Paleta de colores empresariales */
+    --primary-color: #1e3a8a;           /* Azul corporativo */
+    --secondary-color: #3b82f6;         /* Azul intermedio */
+    --accent-color: #06b6d4;            /* Cian elegante */
+    --success-color: #10b981;           /* Verde éxito */
+    --warning-color: #f59e0b;           /* Naranja advertencia */
+    --danger-color: #ef4444;            /* Rojo peligro */
+    
+    /* Grises profesionales */
+    --gray-50: #f8fafc;
+    --gray-100: #f1f5f9;
+    --gray-200: #e2e8f0;
+    --gray-300: #cbd5e1;
+    --gray-400: #94a3b8;
+    --gray-500: #64748b;
+    --gray-600: #475569;
+    --gray-700: #334155;
+    --gray-800: #1e293b;
+    --gray-900: #0f172a;
+    
+    /* Tipografía */
+    --font-primary: 'Inter', 'Segoe UI', system-ui, sans-serif;
+    --font-secondary: 'Roboto', 'Arial', sans-serif;
+    
+    /* Espaciado */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+    --spacing-2xl: 3rem;
+    
+    /* Sombras profesionales */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    
+    /* Bordes */
+    --border-radius-sm: 0.375rem;
+    --border-radius-md: 0.5rem;
+    --border-radius-lg: 0.75rem;
+    --border-radius-xl: 1rem;
+}
+
+/* ========== BASE STYLES ========== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-primary);
+    background: linear-gradient(135deg, var(--gray-50) 0%, var(--gray-100) 100%);
+    color: var(--gray-800);
+    line-height: 1.6;
+    min-height: 100vh;
+    font-size: 14px;
+    letter-spacing: -0.01em;
+}
+
+/* ========== LAYOUT PRINCIPAL ========== */
+.main-container {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: var(--border-radius-xl);
+    margin: var(--spacing-lg);
+    padding: var(--spacing-2xl);
+    box-shadow: var(--shadow-xl);
+    border: 1px solid var(--gray-200);
+    position: relative;
+}
+
+.main-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary-color), var(--accent-color), var(--secondary-color));
+    border-radius: var(--border-radius-xl) var(--border-radius-xl) 0 0;
+}
+
+/* ========== NAVBAR EMPRESARIAL ========== */
+.navbar-custom {
+    background: rgba(255, 255, 255, 0.98) !important;
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--gray-200);
+    box-shadow: var(--shadow-sm);
+    padding: var(--spacing-md) 0;
+    margin-bottom: var(--spacing-xl);
+}
+
+.navbar-brand {
+    font-weight: 700;
+    font-size: 1.25rem;
+    color: var(--primary-color) !important;
+    letter-spacing: -0.02em;
+}
+
+.navbar-brand:hover {
+    color: var(--secondary-color) !important;
+    transform: translateY(-1px);
+    transition: all 0.3s ease;
+}
+
+.nav-link {
+    color: var(--gray-600) !important;
+    font-weight: 500;
+    font-size: 0.9rem;
+    padding: var(--spacing-sm) var(--spacing-md) !important;
+    border-radius: var(--border-radius-md);
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.nav-link:hover {
+    color: var(--primary-color) !important;
+    background-color: var(--gray-50);
+    transform: translateY(-1px);
+}
+
+.nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 50%;
+    width: 0;
+    height: 2px;
+    background: var(--accent-color);
+    transition: all 0.3s ease;
+    transform: translateX(-50%);
+}
+
+.nav-link:hover::after {
+    width: 80%;
+}
+
+/* ========== CONTENEDOR DEL GRAFO ========== */
+.network-container {
+    height: 650px;
+    border: 2px solid var(--gray-200);
+    border-radius: var(--border-radius-lg);
+    background: var(--gray-50);
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+}
+
+.network-container::before {
+    content: "Inicializando visualización...";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--gray-500);
+    font-size: 1.1rem;
+    font-weight: 500;
+    z-index: 1;
+    letter-spacing: -0.01em;
+}
+
+/* ========== PANELES ADMINISTRATIVOS ========== */
+.admin-panel {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-xl);
+    margin-bottom: var(--spacing-xl);
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s ease;
+}
+
+.admin-panel:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--gray-300);
+}
+
+.admin-panel h4, .admin-panel h5 {
+    color: var(--gray-800);
+    font-weight: 600;
+    margin-bottom: var(--spacing-lg);
+    font-size: 1.1rem;
+    letter-spacing: -0.02em;
+}
+
+/* ========== TARJETAS DE ESTADÍSTICAS ========== */
+.stats-card {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    color: white;
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-xl);
+    text-align: center;
+    margin-bottom: var(--spacing-lg);
+    box-shadow: var(--shadow-lg);
+    transition: all 0.3s ease;
+    border: none;
+    position: relative;
+    overflow: hidden;
+}
+
+.stats-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    transition: left 0.5s ease;
+}
+
+.stats-card:hover::before {
+    left: 100%;
+}
+
+.stats-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-xl);
+}
+
+.stats-card h3, .stats-card h4 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: var(--spacing-sm);
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.stats-card p {
+    font-size: 0.9rem;
+    font-weight: 500;
+    opacity: 0.9;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* ========== BOTONES PROFESIONALES ========== */
+.btn-custom {
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-md) var(--spacing-xl);
+    font-weight: 600;
+    font-size: 0.9rem;
+    letter-spacing: -0.01em;
+    transition: all 0.3s ease;
+    border: none;
+    position: relative;
+    overflow: hidden;
+    text-transform: none;
+}
+
+.btn-custom::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s ease;
+}
+
+.btn-custom:hover::before {
+    left: 100%;
+}
+
+.btn-custom:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.btn-primary.btn-custom {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+}
+
+.btn-success.btn-custom {
+    background: linear-gradient(135deg, var(--success-color), #059669);
+    color: white;
+}
+
+.btn-info.btn-custom {
+    background: linear-gradient(135deg, var(--accent-color), #0891b2);
+    color: white;
+}
+
+.btn-warning.btn-custom {
+    background: linear-gradient(135deg, var(--warning-color), #d97706);
+    color: white;
+}
+
+.btn-danger.btn-custom {
+    background: linear-gradient(135deg, var(--danger-color), #dc2626);
+    color: white;
+}
+
+.btn-secondary.btn-custom {
+    background: linear-gradient(135deg, var(--gray-600), var(--gray-700));
+    color: white;
+}
+
+/* ========== FORMULARIOS ELEGANTES ========== */
+.form-label {
+    color: var(--gray-700);
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: var(--spacing-sm);
+    letter-spacing: -0.01em;
+}
+
+.form-control {
+    border-radius: var(--border-radius-md);
+    border: 2px solid var(--gray-200);
+    padding: var(--spacing-md) var(--spacing-lg);
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    background-color: white;
+}
+
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1);
+    outline: none;
+}
+
+.form-control:hover {
+    border-color: var(--gray-300);
+}
+
+/* ========== TABLAS PROFESIONALES ========== */
+.table {
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+    background: white;
+    border: 1px solid var(--gray-200);
+}
+
+.table thead th {
+    background: linear-gradient(135deg, var(--gray-800), var(--gray-700));
+    color: white;
+    border: none;
+    padding: var(--spacing-lg);
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.table tbody td {
+    padding: var(--spacing-lg);
+    vertical-align: middle;
+    border-color: var(--gray-200);
+    font-size: 0.9rem;
+}
+
+.table tbody tr:hover {
+    background-color: var(--gray-50);
+    transition: background-color 0.2s ease;
+}
+
+.table-responsive {
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-md);
+}
+
+/* ========== BADGES MODERNOS ========== */
+.badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--border-radius-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.badge.bg-secondary {
+    background: linear-gradient(135deg, var(--gray-500), var(--gray-600)) !important;
+}
+
+.badge.bg-info {
+    background: linear-gradient(135deg, var(--accent-color), #0891b2) !important;
+}
+
+.badge.bg-warning {
+    background: linear-gradient(135deg, var(--warning-color), #d97706) !important;
+}
+
+.badge.bg-light {
+    background: var(--gray-100) !important;
+    color: var(--gray-700) !important;
+    border: 1px solid var(--gray-300);
+}
+
+/* ========== BARRAS DE PROGRESO ========== */
+.progress {
+    height: 24px;
+    border-radius: var(--border-radius-md);
+    background-color: var(--gray-200);
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.progress-bar {
+    border-radius: var(--border-radius-md);
+    font-weight: 600;
+    font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: width 0.6s ease;
+    position: relative;
+}
+
+.progress-bar.bg-success {
+    background: linear-gradient(135deg, var(--success-color), #059669);
+}
+
+.progress-bar.bg-warning {
+    background: linear-gradient(135deg, var(--warning-color), #d97706);
+}
+
+.progress-bar.bg-info {
+    background: linear-gradient(135deg, var(--accent-color), #0891b2);
+}
+
+.progress-bar.bg-secondary {
+    background: linear-gradient(135deg, var(--gray-500), var(--gray-600));
+}
+
+/* ========== ALERTAS MODERNAS ========== */
+.alert {
+    border-radius: var(--border-radius-lg);
+    border: none;
+    box-shadow: var(--shadow-md);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+}
+
+.alert-info {
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(14, 165, 233, 0.1));
+    color: var(--primary-color);
+    border-left: 4px solid var(--accent-color);
+}
+
+/* ========== ESTADOS DE DEBUG ========== */
+#estado-sistema {
+    font-family: var(--font-secondary);
+    font-weight: 500;
+    font-size: 0.9rem;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--border-radius-sm);
+    background-color: var(--gray-100);
+    border-left: 3px solid var(--accent-color);
+    color: var(--gray-700);
+}
+
+/* ========== RESPONSIVE DESIGN ========== */
+@media (max-width: 768px) {
+    .main-container {
+        margin: var(--spacing-sm);
+        padding: var(--spacing-lg);
+    }
+    
+    .stats-card h3, .stats-card h4 {
+        font-size: 2rem;
+    }
+    
+    .btn-custom {
+        padding: var(--spacing-sm) var(--spacing-md);
+        font-size: 0.85rem;
+    }
+    
+    .network-container {
+        height: 500px;
+    }
+}
+
+@media (max-width: 576px) {
+    .network-container {
+        height: 400px;
+    }
+    
+    .admin-panel {
+        padding: var(--spacing-lg);
+    }
+}
+
+/* ========== ANIMACIONES SUTILES ========== */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.main-container {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+.admin-panel {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+.stats-card {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+/* ========== SCROLLBAR PERSONALIZADA ========== */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--gray-100);
+    border-radius: var(--border-radius-sm);
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, var(--gray-400), var(--gray-500));
+    border-radius: var(--border-radius-sm);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, var(--gray-500), var(--gray-600));
+}
+
+/* ========== MEJORAS DE ACCESIBILIDAD ========== */
+.btn-custom:focus {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+}
+
+.form-control:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+/* ========== EFECTOS HOVER ADICIONALES ========== */
+.table tbody tr {
+    transition: all 0.2s ease;
+}
+
+.admin-panel {
+    transition: all 0.3s ease;
+}
+
+.card, .admin-panel, .stats-card {
+    will-change: transform;
+}
