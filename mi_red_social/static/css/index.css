@@ -1,18 +1,19 @@
 /* static/css/index.css - Estilos específicos para la página principal */
 
 /* ========== LAYOUT SIN SCROLL ========== */
+/* Removemos overflow hidden del body para poder ver el fondo */
 body {
-    overflow: hidden !important; /* Evita el scroll en toda la página */
+    /* overflow: hidden !important; - REMOVIDO para permitir ver el fondo */
 }
 
 .main-container-fullscreen {
-    height: 100vh !important;
+    height: calc(100vh - 40px) !important; /* Deja 40px de respiro arriba y abajo */
     display: flex !important;
     flex-direction: column !important;
     padding: var(--spacing-md) !important;
-    max-height: 100vh !important;
-    overflow: hidden !important;
-    margin: 0 !important; /* Sin margen para aprovechar toda la pantalla */
+    max-height: calc(100vh - 40px) !important;
+    overflow: hidden !important; /* Solo el contenedor principal sin scroll */
+    margin: 20px !important; /* 20px de margen por todos lados para mostrar el fondo */
 }
 
 /* ========== ESTADÍSTICAS COMPACTAS ========== */
@@ -43,7 +44,7 @@ body {
 }
 
 .nombre-conectado {
-    min-height: 1.3rem !important;
+    min-height: 2.5rem !important; /* Aumentamos la altura mínima */
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -53,7 +54,9 @@ body {
     overflow-wrap: break-word !important;
     white-space: normal !important;
     max-width: 100% !important;
-    padding: 0 var(--spacing-xs) !important;
+    padding: var(--spacing-xs) !important; /* Padding en todos lados */
+    line-height: 1.2 !important;
+    font-weight: 600 !important; /* Texto más pesado para mejor legibilidad */
 }
 
 /* ========== ÁREA DE RED ========== */
@@ -189,6 +192,9 @@ body {
 @media (max-height: 768px) {
     .main-container-fullscreen {
         padding: var(--spacing-xs) !important;
+        margin: 10px !important; /* Reducimos el margen en pantallas pequeñas */
+        height: calc(100vh - 20px) !important;
+        max-height: calc(100vh - 20px) !important;
     }
     
     .stats-card-compact {
@@ -218,8 +224,10 @@ body {
     }
     
     .nombre-conectado {
-        font-size: 0.75rem !important;
-        min-height: 1.1rem !important;
+        font-size: 0.8rem !important; /* Ligeramente más grande */
+        min-height: 2rem !important; /* Altura apropiada para pantallas pequeñas */
+        line-height: 1.1 !important;
+        padding: var(--spacing-xs) !important;
     }
     
     /* Notificaciones más pequeñas en pantallas bajas */
@@ -257,6 +265,12 @@ body {
         font-size: 1rem !important;
     }
     
+    .nombre-conectado {
+        font-size: 0.85rem !important;
+        min-height: 1.8rem !important;
+        line-height: 1 !important;
+    }
+    
     /* Notificaciones ultra compactas */
     .notifications-container {
         max-width: 240px;
@@ -290,6 +304,13 @@ body {
     .notification {
         margin-left: 0;
         margin-right: 0;
+    }
+    
+    /* Ajustes de margen para móviles */
+    .main-container-fullscreen {
+        margin: 5px !important;
+        height: calc(100vh - 10px) !important;
+        max-height: calc(100vh - 10px) !important;
     }
 }
 
