@@ -254,8 +254,7 @@
                                 </td>
                                 <td>
                                     <div class="progress" style="height: 20px; width: 80px;">
-                                        <div class="progress-bar{% if relacion.fortaleza >= 8 %} bg-success{% elif relacion.fortaleza >= 6 %} bg-warning{% elif relacion.fortaleza >= 4 %} bg-info{% else %} bg-secondary{% endif %}" 
-                                            style="width: {{ relacion.fortaleza * 10 }}%;">
+                                        <div class="progress-bar{% if relacion.fortaleza >= 8 %} bg-success{% elif relacion.fortaleza >= 6 %} bg-warning{% elif relacion.fortaleza >= 4 %} bg-info{% else %} bg-secondary{% endif %}" style="width: {{ relacion.fortaleza * 10 }}%;">
                                             {{ relacion.fortaleza }}/10
                                         </div>
                                     </div>
