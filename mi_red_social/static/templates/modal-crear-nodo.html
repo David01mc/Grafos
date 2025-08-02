@@ -1,0 +1,80 @@
+<!-- static/templates/modal-crear-nodo.html -->
+<div class="modal fade" id="modalCrearNodo" tabindex="-1" aria-labelledby="modalCrearNodoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalCrearNodoLabel">
+                    <i class="icon icon-plus"></i>
+                    Crear Nueva Persona
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formCrearNodo">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Nombre *</label>
+                                <input type="text" class="form-control" id="nombreNodo" name="nombre" required 
+                                       placeholder="Ej: Juan Pérez">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Emoji</label>
+                                <input type="text" class="form-control" id="emojiNodo" name="emoji" 
+                                       placeholder="😊" maxlength="2">
+                                <small class="text-muted">Opcional - Representa a la persona</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Color</label>
+                                <input type="color" class="form-control" id="colorNodo" name="color" value="#4ecdc4">
+                                <small class="text-muted">Color del nodo en el grafo</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Grupo Social</label>
+                                <select class="form-control" id="grupoNodo" name="grupo">
+                                    <option value="amigos">👫 Amigos</option>
+                                    <option value="familia_cercana">👨‍👩‍👧‍👦 Familia Cercana</option>
+                                    <option value="trabajo">💼 Trabajo</option>
+                                    <option value="universidad">🎓 Universidad</option>
+                                    <option value="deportes">⚽ Deportes</option>
+                                    <option value="vecinos">🏠 Vecinos</option>
+                                    <option value="nuevo">✨ Nuevo</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Descripción</label>
+                        <textarea class="form-control" id="descripcionNodo" name="descripcion" rows="2" 
+                                  placeholder="Ej: Compañero de trabajo desde 2020, fan del fútbol"></textarea>
+                        <small class="text-muted">Información adicional sobre esta persona</small>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="icon icon-target"></i>
+                        <strong>Posición:</strong> El nodo se creará en la posición donde hiciste doble clic en el grafo.
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    Cancelar
+                </button>
+                <button type="button" class="btn btn-success btn-custom" id="btnGuardarNodo" onclick="guardarNuevoNodo()">
+                    <i class="icon icon-plus icon-white"></i>
+                    Crear Persona
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

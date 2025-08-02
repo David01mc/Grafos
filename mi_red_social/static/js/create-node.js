@@ -1,119 +1,106 @@
-// static/js/create-node.js - Sistema de creación de nodos con doble clic
+// static/js/create-node.js - Sistema de creación de nodos con template HTML externo
 
 let creandoNodo = false;
 let modalCrearNodo = null;
 let posicionNuevoNodo = { x: 0, y: 0 };
+let modalTemplate = null; // Cache del template
 
-// Función para crear el modal de creación de nodo
-function crearModalNodo() {
-    // Crear modal HTML dinámicamente
-    const modalHTML = `
-        <div class="modal fade" id="modalCrearNodo" tabindex="-1" aria-labelledby="modalCrearNodoLabel" aria-hidden="true">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="modalCrearNodoLabel">
-                            <i class="icon icon-plus"></i>
-                            Crear Nueva Persona
-                        </h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <form id="formCrearNodo">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Nombre *</label>
-                                        <input type="text" class="form-control" id="nombreNodo" name="nombre" required 
-                                               placeholder="Ej: Juan Pérez">
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Emoji</label>
-                                        <input type="text" class="form-control" id="emojiNodo" name="emoji" 
-                                               placeholder="😊" maxlength="2">
-                                        <small class="text-muted">Opcional - Representa a la persona</small>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Color</label>
-                                        <input type="color" class="form-control" id="colorNodo" name="color" value="#4ecdc4">
-                                        <small class="text-muted">Color del nodo en el grafo</small>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Grupo Social</label>
-                                        <select class="form-control" id="grupoNodo" name="grupo">
-                                            <option value="amigos">👫 Amigos</option>
-                                            <option value="familia_cercana">👨‍👩‍👧‍👦 Familia Cercana</option>
-                                            <option value="trabajo">💼 Trabajo</option>
-                                            <option value="universidad">🎓 Universidad</option>
-                                            <option value="deportes">⚽ Deportes</option>
-                                            <option value="vecinos">🏠 Vecinos</option>
-                                            <option value="nuevo">✨ Nuevo</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label">Descripción</label>
-                                <textarea class="form-control" id="descripcionNodo" name="descripcion" rows="2" 
-                                          placeholder="Ej: Compañero de trabajo desde 2020, fan del fútbol"></textarea>
-                                <small class="text-muted">Información adicional sobre esta persona</small>
-                            </div>
-                            
-                            <div class="alert alert-info">
-                                <i class="icon icon-target"></i>
-                                <strong>Posición:</strong> El nodo se creará en la posición donde hiciste doble clic en el grafo.
-                            </div>
-                        </form>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                            <i class="icon icon-close"></i>
-                            Cancelar
-                        </button>
-                        <button type="button" class="btn btn-success btn-custom" onclick="guardarNuevoNodo()">
-                            <i class="icon icon-plus icon-white"></i>
-                            Crear Persona
-                        </button>
+// Función para cargar el template HTML del modal
+async function cargarTemplateModal() {
+    if (modalTemplate) {
+        return modalTemplate; // Usar cache si ya existe
+    }
+    
+    try {
+        const response = await fetch('/static/templates/modal-crear-nodo.html');
+        if (!response.ok) {
+            throw new Error(`Error cargando template: ${response.status}`);
+        }
+        modalTemplate = await response.text();
+        console.log('✅ Template del modal cargado correctamente');
+        return modalTemplate;
+    } catch (error) {
+        console.error('❌ Error cargando template del modal:', error);
+        
+        // Fallback: crear modal simple en caso de error
+        return `
+            <div class="modal fade" id="modalCrearNodo" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Crear Nueva Persona</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p>Error cargando formulario. Por favor, usa el panel de administración.</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-    `;
+        `;
+    }
+}
+
+// Función para crear el modal de creación de nodo
+async function crearModalNodo() {
+    // Verificar si ya existe el modal
+    const modalExistente = document.getElementById('modalCrearNodo');
+    if (modalExistente) {
+        modalExistente.remove();
+    }
+    
+    // Cargar template HTML
+    const modalHTML = await cargarTemplateModal();
     
     // Agregar modal al DOM
     document.body.insertAdjacentHTML('beforeend', modalHTML);
     
+    // Verificar que el modal se creó correctamente
+    const modalElement = document.getElementById('modalCrearNodo');
+    if (!modalElement) {
+        console.error('❌ Error: No se pudo crear el modal');
+        return;
+    }
+    
     // Inicializar modal de Bootstrap
-    modalCrearNodo = new bootstrap.Modal(document.getElementById('modalCrearNodo'));
+    modalCrearNodo = new bootstrap.Modal(modalElement);
     
     // Configurar eventos del modal
-    document.getElementById('modalCrearNodo').addEventListener('shown.bs.modal', function() {
-        document.getElementById('nombreNodo').focus();
+    modalElement.addEventListener('shown.bs.modal', function() {
+        const nombreInput = document.getElementById('nombreNodo');
+        if (nombreInput) {
+            nombreInput.focus();
+        }
     });
     
     // Limpiar formulario al cerrar modal
-    document.getElementById('modalCrearNodo').addEventListener('hidden.bs.modal', function() {
+    modalElement.addEventListener('hidden.bs.modal', function() {
         limpiarFormularioNodo();
         creandoNodo = false;
+        
+        // Asegurar que el botón vuelva a su estado original
+        const botonGuardar = document.getElementById('btnGuardarNodo');
+        if (botonGuardar) {
+            botonGuardar.innerHTML = '<i class="icon icon-plus icon-white"></i> Crear Persona';
+            botonGuardar.disabled = false;
+        }
     });
     
     // Configurar preview del color
-    document.getElementById('colorNodo').addEventListener('change', function() {
-        mostrarPreviewColor(this.value);
-    });
+    const colorInput = document.getElementById('colorNodo');
+    if (colorInput) {
+        colorInput.addEventListener('change', function() {
+            mostrarPreviewColor(this.value);
+        });
+    }
     
     // Validar formulario en tiempo real
     configurarValidacionFormulario();
+    
+    console.log('✅ Modal creado y configurado correctamente');
 }
 
 // Función para configurar la funcionalidad de doble clic
@@ -148,6 +135,12 @@ function configurarDobleClickCrearNodo() {
 // Función para mostrar indicador visual en la posición seleccionada
 function mostrarIndicadorPosicion(canvasPos) {
     const container = document.getElementById('network');
+    
+    // Eliminar indicador anterior si existe
+    const indicadorAnterior = document.getElementById('indicador-posicion');
+    if (indicadorAnterior) {
+        indicadorAnterior.remove();
+    }
     
     // Crear indicador temporal
     const indicador = document.createElement('div');
@@ -192,11 +185,17 @@ function mostrarIndicadorPosicion(canvasPos) {
 }
 
 // Función para abrir el modal de creación
-function abrirModalCrearNodo() {
+async function abrirModalCrearNodo() {
     creandoNodo = true;
     
+    // Crear el modal cargando el template
+    await crearModalNodo();
+    
+    // Verificar que el modal se creó correctamente
     if (!modalCrearNodo) {
-        crearModalNodo();
+        console.error('❌ Error: No se pudo crear el modal');
+        mostrarNotificacion('error', 'Error al abrir el formulario. Usa el panel de administración.');
+        return;
     }
     
     // Limpiar formulario antes de mostrar
@@ -211,11 +210,17 @@ function abrirModalCrearNodo() {
 
 // Función para limpiar el formulario
 function limpiarFormularioNodo() {
-    document.getElementById('nombreNodo').value = '';
-    document.getElementById('emojiNodo').value = '';
-    document.getElementById('colorNodo').value = '#4ecdc4';
-    document.getElementById('grupoNodo').value = 'amigos';
-    document.getElementById('descripcionNodo').value = '';
+    const nombreInput = document.getElementById('nombreNodo');
+    const emojiInput = document.getElementById('emojiNodo');
+    const colorInput = document.getElementById('colorNodo');
+    const grupoInput = document.getElementById('grupoNodo');
+    const descripcionInput = document.getElementById('descripcionNodo');
+    
+    if (nombreInput) nombreInput.value = '';
+    if (emojiInput) emojiInput.value = '';
+    if (colorInput) colorInput.value = '#4ecdc4';
+    if (grupoInput) grupoInput.value = 'amigos';
+    if (descripcionInput) descripcionInput.value = '';
     
     // Limpiar preview del color
     const preview = document.querySelector('.color-preview-modal');
@@ -232,6 +237,7 @@ function limpiarFormularioNodo() {
 // Función para mostrar preview del color
 function mostrarPreviewColor(color) {
     const colorInput = document.getElementById('colorNodo');
+    if (!colorInput) return;
     
     // Remover preview anterior
     const oldPreview = document.querySelector('.color-preview-modal');
@@ -261,44 +267,63 @@ function configurarValidacionFormulario() {
     const nombreInput = document.getElementById('nombreNodo');
     const emojiInput = document.getElementById('emojiNodo');
     
-    // Validación del nombre
-    nombreInput.addEventListener('input', function() {
-        if (this.value.trim().length >= 2) {
-            this.classList.remove('is-invalid');
-            this.classList.add('is-valid');
-        } else {
-            this.classList.remove('is-valid');
-            this.classList.add('is-invalid');
-        }
-    });
+    if (nombreInput) {
+        // Validación del nombre
+        nombreInput.addEventListener('input', function() {
+            if (this.value.trim().length >= 2) {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+            } else {
+                this.classList.remove('is-valid');
+                this.classList.add('is-invalid');
+            }
+        });
+    }
     
-    // Validación del emoji (máximo 2 caracteres)
-    emojiInput.addEventListener('input', function() {
-        if (this.value.length > 2) {
-            this.value = this.value.slice(0, 2);
-        }
-    });
+    if (emojiInput) {
+        // Validación del emoji (máximo 2 caracteres)
+        emojiInput.addEventListener('input', function() {
+            if (this.value.length > 2) {
+                this.value = this.value.slice(0, 2);
+            }
+        });
+    }
 }
 
 // Función para guardar el nuevo nodo
 async function guardarNuevoNodo() {
     const form = document.getElementById('formCrearNodo');
+    if (!form) {
+        console.error('❌ Formulario no encontrado');
+        return;
+    }
+    
     const formData = new FormData(form);
     
     // Validar campos requeridos
     const nombre = formData.get('nombre').trim();
     if (!nombre || nombre.length < 2) {
         mostrarNotificacion('error', 'El nombre debe tener al menos 2 caracteres');
-        document.getElementById('nombreNodo').focus();
+        const nombreInput = document.getElementById('nombreNodo');
+        if (nombreInput) nombreInput.focus();
         return;
     }
     
+    // Obtener referencia al botón y estado original
+    const botonGuardar = document.getElementById('btnGuardarNodo');
+    if (!botonGuardar) {
+        console.error('❌ Botón guardar no encontrado');
+        return;
+    }
+    
+    const textoOriginal = botonGuardar.innerHTML;
+    
     try {
         // Mostrar estado de carga
-        const botonGuardar = document.querySelector('#modalCrearNodo .btn-success');
-        const textoOriginal = botonGuardar.innerHTML;
         botonGuardar.innerHTML = '<i class="icon icon-refresh icon-spin"></i> Creando...';
         botonGuardar.disabled = true;
+        
+        console.log('📤 Enviando datos:', Object.fromEntries(formData));
         
         // Enviar datos al servidor
         const response = await fetch('/agregar_persona', {
@@ -306,12 +331,16 @@ async function guardarNuevoNodo() {
             body: formData
         });
         
+        console.log('📥 Respuesta del servidor:', response.status);
+        
         if (response.ok) {
+            console.log('✅ Persona creada exitosamente');
+            
             // Cerrar modal
             modalCrearNodo.hide();
             
-            // Recargar datos del grafo
-            await recargarDatos();
+            // Recargar SOLO los datos del grafo, sin recrear la red
+            await recargarSoloDatos();
             
             // Buscar el nuevo nodo y posicionarlo
             setTimeout(() => {
@@ -323,6 +352,7 @@ async function guardarNuevoNodo() {
         } else {
             // Manejar errores del servidor
             const errorText = await response.text();
+            console.error('❌ Error del servidor:', errorText);
             mostrarNotificacion('error', 'Error al crear la persona: ' + errorText);
         }
         
@@ -330,8 +360,7 @@ async function guardarNuevoNodo() {
         console.error('❌ Error creando nodo:', error);
         mostrarNotificacion('error', 'Error de conexión al crear la persona');
     } finally {
-        // Restaurar botón
-        const botonGuardar = document.querySelector('#modalCrearNodo .btn-success');
+        // Restaurar botón SIEMPRE
         if (botonGuardar) {
             botonGuardar.innerHTML = textoOriginal;
             botonGuardar.disabled = false;
@@ -339,9 +368,95 @@ async function guardarNuevoNodo() {
     }
 }
 
+// Nueva función para recargar solo los datos sin recrear toda la red
+async function recargarSoloDatos() {
+    try {
+        console.log('🔄 Recargando solo datos...');
+        
+        const response = await fetch('/api/grafo');
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log('📊 Nuevos datos recibidos:', data);
+        
+        if (nodes && edges) {
+            // Actualizar datasets existentes
+            nodes.clear();
+            nodes.add(data.nodes);
+            
+            edges.clear();
+            edges.add(data.edges);
+            
+            // Actualizar estadísticas
+            document.getElementById('total-personas').textContent = data.nodes.length;
+            document.getElementById('total-conexiones').textContent = data.edges.length;
+            
+            // Calcular densidad
+            const totalNodos = data.nodes.length;
+            const maxPosiblesConexiones = totalNodos > 1 ? (totalNodos * (totalNodos - 1)) / 2 : 0;
+            const densidad = maxPosiblesConexiones > 0 ? ((data.edges.length / maxPosiblesConexiones) * 100).toFixed(1) : 0;
+            document.getElementById('densidad-red').textContent = densidad + '%';
+            
+            // Calcular persona más conectada
+            let personaMasConectada = 'Ninguna';
+            if (data.nodes.length > 0) {
+                const conteoConexiones = {};
+                
+                // Inicializar conteo
+                data.nodes.forEach(node => {
+                    conteoConexiones[node.id] = 0;
+                });
+                
+                // Contar conexiones
+                data.edges.forEach(edge => {
+                    if (conteoConexiones.hasOwnProperty(edge.from)) {
+                        conteoConexiones[edge.from]++;
+                    }
+                    if (conteoConexiones.hasOwnProperty(edge.to)) {
+                        conteoConexiones[edge.to]++;
+                    }
+                });
+                
+                // Encontrar el más conectado
+                let maxConexiones = 0;
+                let nodeIdMasConectado = null;
+                
+                for (const [nodeId, conexiones] of Object.entries(conteoConexiones)) {
+                    if (conexiones > maxConexiones) {
+                        maxConexiones = conexiones;
+                        nodeIdMasConectado = nodeId;
+                    }
+                }
+                
+                if (nodeIdMasConectado) {
+                    const nodeMasConectado = data.nodes.find(node => node.id == nodeIdMasConectado);
+                    if (nodeMasConectado && nodeMasConectado.label) {
+                        personaMasConectada = nodeMasConectado.label.replace(/<[^>]*>/g, '').trim();
+                    }
+                }
+            }
+            
+            document.getElementById('mas-conectado').textContent = personaMasConectada;
+            
+            console.log('✅ Datos actualizados correctamente');
+        }
+        
+        return data;
+        
+    } catch (error) {
+        console.error('❌ Error recargando datos:', error);
+        throw error;
+    }
+}
+
 // Función para posicionar el nuevo nodo en la posición del doble clic
 function posicionarNuevoNodo(nombrePersona) {
-    if (!nodes || !network) return;
+    if (!nodes || !network) {
+        console.warn('⚠️ Nodes o network no disponibles para posicionamiento');
+        return;
+    }
     
     // Buscar el nodo recién creado por nombre
     const nodosActuales = nodes.get();
@@ -350,6 +465,8 @@ function posicionarNuevoNodo(nombrePersona) {
     );
     
     if (nuevoNodo) {
+        console.log('🎯 Posicionando nodo:', nuevoNodo.id, 'en:', posicionNuevoNodo);
+        
         // Actualizar posición del nodo
         nodes.update({
             id: nuevoNodo.id,
@@ -365,13 +482,15 @@ function posicionarNuevoNodo(nombrePersona) {
             }
         });
         
-        console.log(`✅ Nodo "${nombrePersona}" posicionado en:`, posicionNuevoNodo);
+        console.log(`✅ Nodo "${nombrePersona}" posicionado correctamente`);
         
         // Eliminar indicador de posición si existe
         const indicador = document.getElementById('indicador-posicion');
         if (indicador) {
             indicador.remove();
         }
+    } else {
+        console.warn('⚠️ No se encontró el nodo recién creado para posicionamiento');
     }
 }
 
@@ -428,6 +547,7 @@ function inicializarCreacionNodos() {
     // Esperar a que la red esté lista
     if (typeof network !== 'undefined' && network) {
         configurarDobleClickCrearNodo();
+        console.log('🎯 Sistema de creación de nodos inicializado');
     } else {
         // Reintentalar después de un momento
         setTimeout(inicializarCreacionNodos, 1000);
