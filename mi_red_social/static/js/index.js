@@ -202,6 +202,12 @@ async function inicializarRed() {
                 network.fit();
                 actualizarEstado('✅ Red funcionando');
                 setTimeout(() => actualizarEstado('Sistema listo'), 2000);
+                
+                // NUEVA FUNCIONALIDAD: Configurar doble clic para crear nodos
+                if (typeof configurarDobleClickCrearNodo === 'function') {
+                    configurarDobleClickCrearNodo();
+                    console.log('🎯 Funcionalidad de doble clic para crear nodos activada');
+                }
             }
         }
         

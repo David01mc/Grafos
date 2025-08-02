@@ -71,6 +71,12 @@
                     </button>
                 </div>
                 
+                <!-- Instrucciones de uso -->
+                <div class="alert alert-info mb-3" style="font-size: 0.8rem; padding: 0.5rem;">
+                    <i class="icon icon-plus icon-sm"></i>
+                    <strong>Tip:</strong> Haz <strong>doble clic</strong> en cualquier área vacía del grafo para crear una nueva persona en esa posición.
+                </div>
+                
                 <!-- El grafo -->
                 <div id="network" class="network-container network-full-height"></div>
                 
@@ -86,6 +92,8 @@
 {% endblock %}
 
 {% block scripts %}
-<!-- Incluir el archivo JavaScript externo -->
+<!-- Incluir el archivo JavaScript principal -->
 <script src="{{ url_for('static', filename='js/index.js') }}"></script>
+<!-- Incluir el nuevo archivo JavaScript para creación de nodos -->
+<script src="{{ url_for('static', filename='js/create-node.js') }}"></script>
 {% endblock %}
