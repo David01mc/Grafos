@@ -111,7 +111,7 @@ async function inicializarRed() {
         nodes = new vis.DataSet(data.nodes);
         edges = new vis.DataSet(data.edges);
         
-        // Configuración optimizada para el espacio compacto
+        // Configuración CORREGIDA - SIN hideEdgesOnDrag
         const options = {
             physics: {
                 enabled: false,
@@ -133,13 +133,17 @@ async function inicializarRed() {
             interaction: {
                 hover: true,
                 tooltipDelay: 300,
-                hideEdgesOnDrag: true,
-                selectConnectedEdges: false
+                // REMOVIDO: hideEdgesOnDrag: true, <-- Esta era la causa del problema
+                selectConnectedEdges: false,
+                dragNodes: true,
+                dragView: true,
+                zoomView: true
             },
             edges: {
                 smooth: {
                     type: "continuous",
-                    forceDirection: "none"
+                    forceDirection: "none",
+                    roundness: 0.5
                 },
                 font: { 
                     color: '#333', 
@@ -147,7 +151,13 @@ async function inicializarRed() {
                     strokeWidth: 2,
                     strokeColor: 'white'
                 },
-                width: 2
+                width: 2,
+                // Asegurar que las aristas se mantengan visibles
+                color: {
+                    color: '#848484',
+                    highlight: '#848484',
+                    hover: '#000000'
+                }
             },
             nodes: {
                 borderWidth: 2,
@@ -163,7 +173,19 @@ async function inicializarRed() {
                     size: 13,
                     strokeWidth: 2,
                     strokeColor: 'rgba(0,0,0,0.6)'
+                },
+                // Mejorar la interacción de los nodos
+                chosen: {
+                    node: function(values, id, selected, hovering) {
+                        values.shadow = true;
+                        values.shadowColor = 'rgba(0,0,0,0.3)';
+                        values.shadowSize = 10;
+                    }
                 }
+            },
+            // Configuración adicional para mejorar el rendimiento durante el arrastre
+            configure: {
+                enabled: false
             }
         };
         
@@ -183,7 +205,7 @@ async function inicializarRed() {
             }
         }
         
-        // Eventos
+        // Eventos mejorados
         network.on("click", function (params) {
             if (params.nodes.length > 0) {
                 const nodeId = params.nodes[0];
@@ -201,6 +223,28 @@ async function inicializarRed() {
             document.body.style.cursor = 'default';
         });
         
+        // Eventos específicos para el arrastre
+        network.on("dragStart", function (params) {
+            if (params.nodes.length > 0) {
+                document.body.style.cursor = 'grabbing';
+                console.log('🎯 Iniciando arrastre de nodo:', params.nodes[0]);
+            }
+        });
+        
+        network.on("dragging", function (params) {
+            if (params.nodes.length > 0) {
+                // Durante el arrastre, podemos añadir efectos visuales si queremos
+                // Las aristas ahora permanecerán visibles
+            }
+        });
+        
+        network.on("dragEnd", function (params) {
+            if (params.nodes.length > 0) {
+                document.body.style.cursor = 'default';
+                console.log('✅ Arrastre completado para nodo:', params.nodes[0]);
+            }
+        });
+        
         // Eventos para marcar la red como lista
         network.once("stabilizationIterationsDone", marcarRedLista);
         network.once("afterDrawing", function() {
@@ -210,6 +254,16 @@ async function inicializarRed() {
         // Backup: actualizar estado después de un tiempo
         setTimeout(marcarRedLista, 2000);
         
+        // Redimensionar automáticamente
+        window.addEventListener('resize', function() {
+            if (network) {
+                network.redraw();
+                setTimeout(() => {
+                    network.fit();
+                }, 100);
+            }
+        });
+        
     } catch (error) {
         console.error('❌ Error inicializando red:', error);
         actualizarEstado(`❌ Error: ${error.message}`);
@@ -218,7 +272,12 @@ async function inicializarRed() {
 
 function centrarRed() {
     if (network) {
-        network.fit();
+        network.fit({
+            animation: {
+                duration: 500,
+                easingFunction: 'easeInOutQuad'
+            }
+        });
         actualizarEstado('🎯 Vista centrada');
         setTimeout(() => actualizarEstado('Sistema listo'), 2000);
     } else {
@@ -229,7 +288,22 @@ function centrarRed() {
 function togglePhysics() {
     if (network) {
         physicsEnabled = !physicsEnabled;
-        network.setOptions({ physics: { enabled: physicsEnabled } });
+        network.setOptions({ 
+            physics: { 
+                enabled: physicsEnabled,
+                // Si activamos física, usar configuración suave
+                ...(physicsEnabled && {
+                    barnesHut: {
+                        gravitationalConstant: -2000,
+                        centralGravity: 0.1,
+                        springLength: 100,
+                        springConstant: 0.02,
+                        damping: 0.09,
+                        avoidOverlap: 0.1
+                    }
+                })
+            } 
+        });
         
         // Actualizar texto del botón
         const botonFisica = document.querySelector('button[onclick="togglePhysics()"]');
@@ -241,7 +315,7 @@ function togglePhysics() {
         actualizarEstado(`⚡ Física ${physicsEnabled ? 'ON' : 'OFF'}`);
         if (!physicsEnabled) {
             actualizarEstado('✅ Red funcionando');
-        setTimeout(() => actualizarEstado('Sistema listo'), 2000);
+            setTimeout(() => actualizarEstado('Sistema listo'), 2000);
         }
     } else {
         actualizarEstado('❌ Red no inicializada');
@@ -259,6 +333,17 @@ function randomizePositions() {
             });
         });
         nodes.update(updates);
+        
+        // Centrar la vista después de reorganizar
+        setTimeout(() => {
+            network.fit({
+                animation: {
+                    duration: 500,
+                    easingFunction: 'easeInOutQuad'
+                }
+            });
+        }, 100);
+        
         actualizarEstado('🔄 Red reorganizada');
         setTimeout(() => actualizarEstado('Sistema listo'), 2000);
     } else {
@@ -275,7 +360,9 @@ async function recargarDatos() {
 function ajustarTamanoRed() {
     if (network) {
         network.redraw();
-        network.fit();
+        setTimeout(() => {
+            network.fit();
+        }, 100);
     }
 }
 
@@ -309,3 +396,17 @@ window.addEventListener('load', function() {
 
 // Ajustar tamaño cuando cambia la ventana
 window.addEventListener('resize', ajustarTamanoRed);
+
+// Función de debugging para verificar el estado de las aristas
+function debugAristas() {
+    if (network && edges) {
+        console.log('🔍 Estado de las aristas:');
+        console.log('Total aristas:', edges.length);
+        edges.forEach(edge => {
+            console.log(`Arista ${edge.id}: ${edge.from} -> ${edge.to}`);
+        });
+    }
+}
+
+// Hacer disponible globalmente para debugging
+window.debugAristas = debugAristas;

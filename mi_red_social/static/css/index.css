@@ -1,46 +1,78 @@
 /* static/css/index.css - Estilos específicos para la página principal */
+/* VERSIÓN CORREGIDA PARA ARISTAS DURANTE ARRASTRE */
+
+/* ========== ELIMINACIÓN DEL SCROLL HORIZONTAL ========== */
+html, body {
+    overflow-x: hidden !important; /* Elimina el scroll horizontal completamente */
+    max-width: 100vw !important; /* Limita el ancho máximo al viewport */
+    box-sizing: border-box !important;
+}
+
+/* Aplicar box-sizing a todos los elementos */
+*, *::before, *::after {
+    box-sizing: border-box !important;
+}
 
 /* ========== LAYOUT SIN SCROLL ========== */
 /* Removemos overflow hidden del body para poder ver el fondo */
 body {
     /* overflow: hidden !important; - REMOVIDO para permitir ver el fondo */
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
 .main-container-fullscreen {
-    height: calc(100vh - 40px) !important; /* Deja 40px de respiro arriba y abajo */
+    height: 100vh !important; /* Altura completa del viewport */
+    width: 100% !important; /* Ancho completo controlado */
+    max-width: 100vw !important; /* No exceder el viewport width */
     display: flex !important;
     flex-direction: column !important;
-    padding: var(--spacing-md) !important;
-    max-height: calc(100vh - 40px) !important;
-    overflow: hidden !important; /* Solo el contenedor principal sin scroll */
-    margin: 20px !important; /* 20px de margen por todos lados para mostrar el fondo */
+    padding: var(--spacing-sm) !important; /* Padding reducido */
+    max-height: 88vh !important;
+    overflow-y: auto !important; /* Solo scroll vertical si es necesario */
+    overflow-x: hidden !important; /* Sin scroll horizontal */
+    margin: 0 !important; /* Sin margen para evitar overflow */
+    box-sizing: border-box !important;
 }
 
 /* ========== ESTADÍSTICAS COMPACTAS ========== */
 .stats-row {
     flex-shrink: 0;
-    margin-bottom: var(--spacing-sm) !important;
+    margin-bottom: var(--spacing-xs) !important; /* Margen mínimo */
+    width: 100% !important; /* Controlar ancho */
+    max-width: 100% !important;
+    overflow: hidden !important; /* Evitar desbordamiento */
 }
 
 .stats-card-compact {
     padding: var(--spacing-sm) var(--spacing-md) !important;
     min-height: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
 }
 
 .stats-card-compact h4 {
     margin-bottom: var(--spacing-xs) !important;
     font-size: 1.4rem !important;
     line-height: 1.2 !important;
+    width: 100% !important;
+    max-width: 100% !important;
 }
 
 .stats-card-compact h5 {
     margin-bottom: var(--spacing-xs) !important;
     font-size: 0.9rem !important;
     line-height: 1.1 !important;
+    width: 100% !important;
+    max-width: 100% !important;
 }
 
 .stats-card-compact p {
     font-size: 0.8rem !important;
+    width: 100% !important;
+    max-width: 100% !important;
 }
 
 .nombre-conectado {
@@ -53,27 +85,43 @@ body {
     hyphens: auto !important;
     overflow-wrap: break-word !important;
     white-space: normal !important;
+    width: 100% !important;
     max-width: 100% !important;
     padding: var(--spacing-xs) !important; /* Padding en todos lados */
     line-height: 1.2 !important;
     font-weight: 600 !important; /* Texto más pesado para mejor legibilidad */
+    box-sizing: border-box !important;
+    overflow: hidden !important; /* Evitar desbordamiento del texto */
 }
 
-/* ========== ÁREA DE RED ========== */
+/* ========== ÁREA DE RED - CORREGIDA PARA ARISTAS ========== */
 .network-row {
-    flex: 1;
-    min-height: 0;
+    flex: 0 0 auto !important; /* No crece automáticamente */
+    min-height: 0 !important;
+    height: 75vh !important; /* Altura fija: 65% del viewport */
+    max-height: 680px !important; /* Altura máxima */
+    margin-bottom: var(--spacing-md) !important; /* Espacio después del grafo */
+    width: 100% !important;
+    max-width: 100% !important;
+    /* REMOVIDO: overflow: hidden - Esto podría estar causando el problema */
 }
 
 .network-col {
     height: 100%;
+    width: 100% !important;
+    max-width: 100% !important;
+    position: relative; /* Añadido para mejor posicionamiento */
 }
 
 .admin-panel-compact {
     height: 100% !important;
+    width: 100% !important;
+    max-width: 100% !important;
     display: flex !important;
     flex-direction: column !important;
-    padding: var(--spacing-md) !important;
+    padding: var(--spacing-sm) !important; /* Padding reducido */
+    box-sizing: border-box !important;
+    /* REMOVIDO: overflow: hidden - Esto podría estar causando el problema */
 }
 
 .controls-container {
@@ -83,21 +131,99 @@ body {
     align-items: center;
     flex-wrap: wrap;
     gap: var(--spacing-xs);
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: hidden !important; /* Mantenemos aquí porque solo afecta los controles */
 }
 
 .controls-container .btn-custom {
     padding: var(--spacing-xs) var(--spacing-sm) !important;
     font-size: 0.75rem !important;
+    flex-shrink: 0; /* Evitar que se compriman demasiado */
+    max-width: 100% !important;
 }
 
+/* ========== CONTENEDOR DEL GRAFO - AJUSTADO PARA ARISTAS ========== */
 .network-full-height {
     flex: 1 !important;
     min-height: 0 !important;
     height: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
     border: 2px solid var(--gray-200) !important;
     border-radius: var(--border-radius-lg) !important;
     background: var(--gray-50) !important;
     box-shadow: var(--shadow-md) !important;
+    /* CAMBIADO: overflow: visible para permitir que las aristas se vean durante el arrastre */
+    overflow: visible !important;
+    position: relative !important;
+}
+
+/* ========== ESTILOS ESPECÍFICOS PARA SVG Y ARISTAS ========== */
+/* Asegurar que el SVG del grafo se comporte correctamente */
+.network-full-height svg {
+    width: 100% !important;
+    height: 100% !important;
+    overflow: visible !important; /* Crítico para las aristas durante arrastre */
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+}
+
+/* Estilos para elementos del grafo durante arrastre */
+.network-full-height .node {
+    pointer-events: all !important;
+    transition: none !important; /* Sin transiciones durante arrastre */
+}
+
+.network-full-height .node.dragging {
+    cursor: grabbing !important;
+}
+
+.network-full-height .link,
+.network-full-height .edge {
+    pointer-events: none !important; /* Las aristas no interfieren con el arrastre */
+    transition: none !important; /* Sin transiciones para mejor rendimiento */
+    /* Asegurar que las aristas sean siempre visibles */
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Durante el arrastre, mantener las aristas visibles */
+.network-full-height .link.dragging-related,
+.network-full-height .edge.dragging-related {
+    stroke-opacity: 0.8 !important; /* Ligeramente transparente pero visible */
+    stroke-width: 2px !important; /* Más gruesa para mejor visibilidad */
+    transition: none !important;
+}
+
+/* ========== ESPACIO PARA BOTONES INFERIORES ========== */
+.bottom-space {
+    flex: 0 0 auto; /* No crece, no se reduce */
+    height: 20vh; /* 20% del viewport para botones futuros */
+    min-height: 120px; /* Altura mínima */
+    max-height: 200px; /* Altura máxima */
+    width: 100% !important;
+    max-width: 100% !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: var(--border-radius-lg);
+    margin-top: var(--spacing-md);
+    border: 2px dashed var(--gray-300);
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+}
+
+.bottom-space-placeholder {
+    color: var(--gray-500);
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-align: center;
+    opacity: 0.7;
+    max-width: 100% !important;
+    word-wrap: break-word;
 }
 
 /* ========== SISTEMA DE NOTIFICACIONES ========== */
@@ -108,6 +234,8 @@ body {
     z-index: 9999;
     max-width: 350px;
     pointer-events: none;
+    /* Evitar que se salga del viewport */
+    max-width: calc(100vw - 40px) !important;
 }
 
 .notification {
@@ -126,6 +254,8 @@ body {
     border-left: 4px solid var(--gray-300);
     max-width: 100%;
     word-wrap: break-word;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
 }
 
 .notification-show {
@@ -165,6 +295,9 @@ body {
     color: var(--gray-700);
     font-weight: 500;
     line-height: 1.4;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
 }
 
 .notification-close {
@@ -195,6 +328,8 @@ body {
         margin: 10px !important; /* Reducimos el margen en pantallas pequeñas */
         height: calc(100vh - 20px) !important;
         max-height: calc(100vh - 20px) !important;
+        width: calc(100% - 20px) !important; /* Ajustar ancho también */
+        max-width: calc(100vw - 20px) !important;
     }
     
     .stats-card-compact {
@@ -234,7 +369,7 @@ body {
     .notifications-container {
         top: 10px;
         right: 10px;
-        max-width: 280px;
+        max-width: min(280px, calc(100vw - 20px)) !important;
     }
     
     .notification {
@@ -273,7 +408,7 @@ body {
     
     /* Notificaciones ultra compactas */
     .notifications-container {
-        max-width: 240px;
+        max-width: min(240px, calc(100vw - 20px)) !important;
     }
     
     .notification {
@@ -286,38 +421,59 @@ body {
     .controls-container {
         flex-direction: column;
         align-items: flex-start;
+        width: 100% !important;
     }
     
     .controls-container .btn-custom {
         margin-bottom: var(--spacing-xs);
         width: 100%;
+        max-width: 100% !important;
         text-align: center;
+        box-sizing: border-box !important;
     }
     
     /* Notificaciones de ancho completo en móvil */
     .notifications-container {
         left: 10px;
         right: 10px;
-        max-width: none;
+        max-width: none !important;
+        width: calc(100vw - 20px) !important;
     }
     
     .notification {
         margin-left: 0;
         margin-right: 0;
+        width: 100% !important;
+        max-width: 100% !important;
     }
     
-    /* Ajustes de margen para móviles */
+    /* Ajustes para móviles - sin márgenes extras */
     .main-container-fullscreen {
-        margin: 5px !important;
-        height: calc(100vh - 10px) !important;
-        max-height: calc(100vh - 10px) !important;
+        padding: var(--spacing-xs) !important; /* Padding ultra mínimo en móviles */
+        margin: 5px !important; /* Margen mínimo */
+        width: calc(100% - 10px) !important;
+        max-width: calc(100vw - 10px) !important;
+    }
+    
+    .admin-panel-compact {
+        padding: var(--spacing-xs) !important; /* Padding ultra mínimo */
+    }
+    
+    .stats-card-compact {
+        padding: var(--spacing-xs) !important; /* Cards más compactas */
+    }
+    
+    /* Altura del grafo en móviles */
+    .network-row {
+        height: 50vh !important; /* Más pequeño en móviles */
+        max-height: 350px !important;
     }
 }
 
 /* Para pantallas muy anchas */
 @media (min-width: 1400px) {
     .notifications-container {
-        max-width: 400px;
+        max-width: min(400px, calc(100vw - 40px)) !important;
     }
 }
 
@@ -387,4 +543,16 @@ body {
     50% {
         opacity: 0.5;
     }
+}
+
+/* ========== ESTILOS ADICIONALES PARA DEBUGGING DE ARISTAS ========== */
+/* Solo para debugging - remover en producción */
+.debug-svg-container {
+    border: 1px dashed red !important;
+    background: rgba(255, 0, 0, 0.1) !important;
+}
+
+.debug-svg-element {
+    border: 1px solid blue !important;
+    background: rgba(0, 0, 255, 0.1) !important;
 }
