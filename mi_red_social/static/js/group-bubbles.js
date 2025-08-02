@@ -71,24 +71,83 @@ function obtenerGruposUnicos() {
     return Array.from(grupos);
 }
 
-// Función principal para crear burbujas de grupos
+// Función principal para crear burbujas de grupos - VERSIÓN ROBUSTA
 function crearBurbujasGrupos() {
     if (!burbujasActivas) return;
     
-    // Limpiar burbujas anteriores
+    console.log('🫧 Iniciando creación de burbujas robustas...');
+    
+    // Verificar dependencias
+    if (!network || !nodes) {
+        console.warn('⚠️ Network o nodes no disponibles para crear burbujas');
+        return;
+    }
+    
+    const container = document.getElementById('network');
+    if (!container) {
+        console.error('❌ Contenedor network no encontrado');
+        return;
+    }
+    
+    // Limpiar burbujas anteriores de forma robusta
     limpiarBurbujasAnteriores();
+    
+    // Crear SVG de forma robusta
+    const svg = crearSVGRobusto(container);
+    if (!svg) return;
     
     // Agrupar nodos por grupo
     const nodosPorGrupo = agruparNodosPorGrupo();
     
-    // Crear burbuja para cada grupo
-    Object.entries(nodosPorGrupo).forEach(([grupo, nodosGrupo]) => {
-        if (nodosGrupo.length > 1) { // Solo crear burbuja si hay más de 1 nodo
-            crearBurbujaGrupo(grupo, nodosGrupo);
+    // Colores específicos para grupos
+    const coloresGrupos = {
+        'universidad': '#3498DB',
+        'trabajo': '#2C3E50', 
+        'familia_cercana': '#E74C3C',
+        'amigos': '#1ABC9C',
+        'cadiz': '#F39C12',
+        'madrid': '#9B59B6',
+        'deportes': '#27AE60',
+        'vecinos': '#E67E22',
+        'equipo_directo': '#FFD700',
+        'colaboradores': '#FF8C00',
+        'otros_departamentos': '#8A2BE2',
+        'departamento': '#00CED1',
+        'externos': '#FF6347',
+        'nuevo': '#4169E1'
+    };
+    
+    let burbujasCreadas = 0;
+    
+    // Crear burbuja para cada grupo (incluso con 1 nodo)
+    Object.entries(nodosPorGrupo).forEach(([grupo, nodosGrupo], index) => {
+        if (nodosGrupo.length > 0) { // Cambié de > 1 a > 0 para mostrar todos los grupos
+            console.log(`🔄 Creando burbuja para: ${grupo} (${nodosGrupo.length} nodos)`);
+            
+            const exito = crearBurbujaGrupoRobusta(grupo, nodosGrupo, svg, coloresGrupos, index);
+            if (exito) {
+                burbujasCreadas++;
+            }
         }
     });
     
-    console.log('🫧 Burbujas de grupos creadas');
+    // Agregar CSS de animaciones si no existe
+    agregarCSSAnimaciones();
+    
+    console.log(`✅ ${burbujasCreadas} burbujas creadas exitosamente`);
+    
+    // Verificación final
+    setTimeout(() => {
+        const svgVerificacion = container.querySelector('.burbujas-svg');
+        if (svgVerificacion) {
+            const burbujas = svgVerificacion.querySelectorAll('.burbuja-grupo');
+            console.log(`🔍 Verificación: ${burbujas.length} burbujas en el DOM`);
+            
+            if (typeof mostrarNotificacion === 'function' && burbujas.length > 0) {
+                mostrarNotificacion('success', `¡${burbujas.length} burbujas de grupos creadas!`);
+            }
+        }
+    }, 300);
 }
 
 // Función para agrupar nodos por su grupo

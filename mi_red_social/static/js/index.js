@@ -194,7 +194,7 @@ async function inicializarRed() {
         
         // Variable para controlar si ya se mostró el mensaje de éxito
         let redLista = false;
-        
+
         // Función para marcar la red como lista
         function marcarRedLista() {
             if (!redLista) {
@@ -214,9 +214,31 @@ async function inicializarRed() {
                     configurarHoverCrearAristas();
                     console.log('🔗 Funcionalidad de hover para crear aristas activada');
                 }
+                
+                // NUEVA FUNCIONALIDAD: Activar sistema de burbujas automáticamente
+                setTimeout(() => {
+                    if (typeof crearBurbujasGrupos === 'function') {
+                        console.log('🫧 Activando sistema de burbujas automáticamente...');
+                        
+                        // Verificar si hay nodos con grupos asignados
+                        if (nodes && nodes.length > 0) {
+                            const nodosConGrupos = nodes.get().filter(nodo => nodo.grupo && nodo.grupo !== 'sin_grupo');
+                            
+                            if (nodosConGrupos.length > 0) {
+                                // Activar burbujas si hay grupos
+                                if (typeof burbujasActivas !== 'undefined') {
+                                    window.burbujasActivas = true;
+                                }
+                                crearBurbujasGrupos();
+                                console.log('✅ Burbujas activadas automáticamente');
+                            } else {
+                                console.log('📝 No hay grupos asignados, las burbujas se activarán cuando se asignen grupos');
+                            }
+                        }
+                    }
+                }, 1000); // Esperar 1 segundo para que todo esté estabilizado
             }
         }
-        
         // Eventos mejorados
         network.on("click", function (params) {
             if (params.nodes.length > 0) {
