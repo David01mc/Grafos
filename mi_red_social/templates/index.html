@@ -51,30 +51,71 @@
         <div class="col-12 network-col">
             <div class="admin-panel admin-panel-compact">
 
-                <!-- Controles -->
+                <!-- Controles principales -->
                 <div class="controls-container">
-                    <button class="btn btn-success btn-custom btn-sm me-2" onclick="centrarRed()">
-                        <i class="icon icon-target icon-sm"></i>
-                        Centrar Vista
-                    </button>
-                    <button class="btn btn-info btn-custom btn-sm me-2" onclick="togglePhysics()">
-                        <i class="icon icon-lightning icon-sm"></i>
-                        Activar Física
-                    </button>
-                    <button class="btn btn-warning btn-custom btn-sm me-2" onclick="randomizePositions()">
-                        <i class="icon icon-shuffle icon-sm"></i>
-                        Reorganizar
-                    </button>
-                    <button class="btn btn-primary btn-custom btn-sm" onclick="recargarDatos()">
-                        <i class="icon icon-refresh icon-sm"></i>
-                        Recargar
-                    </button>
+                    <!-- Fila 1: Controles básicos del grafo -->
+                    <div class="controls-row mb-2">
+                        <button class="btn btn-success btn-custom btn-sm me-2" onclick="centrarRed()">
+                            <i class="icon icon-target icon-sm"></i>
+                            Centrar Vista
+                        </button>
+                        <button class="btn btn-info btn-custom btn-sm me-2" onclick="togglePhysics()">
+                            <i class="icon icon-lightning icon-sm"></i>
+                            Activar Física
+                        </button>
+                        <button class="btn btn-warning btn-custom btn-sm me-2" onclick="randomizePositions()">
+                            <i class="icon icon-shuffle icon-sm"></i>
+                            Reorganizar
+                        </button>
+                        <button class="btn btn-primary btn-custom btn-sm" onclick="recargarDatos()">
+                            <i class="icon icon-refresh icon-sm"></i>
+                            Recargar
+                        </button>
+                    </div>
+                    
+                    <!-- Fila 2: Controles de grupos y burbujas -->
+                    <div class="controls-row">
+                        <button class="btn btn-outline-primary btn-custom btn-sm me-2" onclick="toggleBurbujas()">
+                            <i class="icon icon-chart icon-sm"></i>
+                            Mostrar Grupos
+                        </button>
+                        <button class="btn btn-outline-success btn-custom btn-sm me-2" onclick="abrirModalGestionGrupos()">
+                            <i class="icon icon-settings icon-sm"></i>
+                            Gestionar Grupos
+                        </button>
+                        <button class="btn btn-outline-info btn-custom btn-sm me-2" onclick="mostrarPanelControlBurbujas()">
+                            <i class="icon icon-users icon-sm"></i>
+                            Control Burbujas
+                        </button>
+                        <button class="btn btn-outline-secondary btn-custom btn-sm" onclick="obtenerEstadisticasGrupos()">
+                            <i class="icon icon-chart icon-sm"></i>
+                            Stats Grupos
+                        </button>
+                    </div>
                 </div>
                 
                 <!-- Instrucciones de uso -->
                 <div class="alert alert-info mb-3" style="font-size: 0.8rem; padding: 0.5rem;">
-                    <i class="icon icon-plus icon-sm"></i>
-                    <strong>Tip:</strong> Haz <strong>doble clic</strong> en cualquier área vacía del grafo para crear una nueva persona en esa posición.
+                    <div class="row">
+                        <div class="col-md-6">
+                            <i class="icon icon-plus icon-sm"></i>
+                            <strong>Crear Personas:</strong> Haz <strong>doble clic</strong> en cualquier área vacía del grafo para crear una nueva persona.
+                        </div>
+                        <div class="col-md-6">
+                            <i class="icon icon-link icon-sm"></i>
+                            <strong>Crear Relaciones:</strong> Pasa el cursor sobre una persona y haz clic en el botón <strong>+</strong> que aparece.
+                        </div>
+                    </div>
+                    <div class="row mt-1">
+                        <div class="col-md-6">
+                            <i class="icon icon-chart icon-sm"></i>
+                            <strong>Grupos:</strong> Usa <strong>"Gestionar Grupos"</strong> para crear burbujas que agrupen personas por universidad, ciudad, etc.
+                        </div>
+                        <div class="col-md-6">
+                            <i class="icon icon-users icon-sm"></i>
+                            <strong>Burbujas:</strong> Las burbujas de colores muestran grupos como "Universidad", "Cádiz", "Trabajo", etc.
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- El grafo -->
@@ -98,4 +139,286 @@
 <script src="{{ url_for('static', filename='js/create-node.js') }}"></script>
 <!-- Incluir el nuevo archivo JavaScript para creación de aristas -->
 <script src="{{ url_for('static', filename='js/create-edge.js') }}"></script>
+<!-- Incluir el sistema de burbujas de grupos -->
+<script src="{{ url_for('static', filename='js/group-bubbles.js') }}"></script>
+<!-- Incluir el sistema de gestión de grupos -->
+<script src="{{ url_for('static', filename='js/group-management.js') }}"></script>
+
+<!-- Script adicional para integración -->
+<script>
+// Función mejorada para mostrar estadísticas de grupos
+window.obtenerEstadisticasGrupos = function() {
+    if (typeof obtenerEstadisticasGrupos === 'function') {
+        const stats = obtenerEstadisticasGrupos();
+        console.table(stats);
+        
+        // Crear modal para mostrar estadísticas
+        let html = `
+            <div class="modal fade" id="modalEstadisticasGrupos" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">
+                                <i class="icon icon-chart"></i>
+                                Estadísticas de Grupos
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Grupo</th>
+                                            <th>Nodos</th>
+                                            <th>Conexiones Internas</th>
+                                            <th>Conexiones Externas</th>
+                                            <th>Densidad Interna</th>
+                                            <th>Color</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+        `;
+        
+        if (Object.keys(stats).length === 0) {
+            html += '<tr><td colspan="6" class="text-center text-muted">No hay grupos con datos suficientes</td></tr>';
+        } else {
+            Object.entries(stats).forEach(([grupo, data]) => {
+                const nombreFormateado = formatearNombreGrupo ? formatearNombreGrupo(grupo) : grupo;
+                html += `
+                    <tr>
+                        <td><strong>${nombreFormateado}</strong></td>
+                        <td><span class="badge bg-primary">${data.nodos}</span></td>
+                        <td><span class="badge bg-success">${data.conexionesInternas}</span></td>
+                        <td><span class="badge bg-info">${data.conexionesExternas}</span></td>
+                        <td><span class="badge bg-warning">${data.densidad}</span></td>
+                        <td>
+                            <div style="width: 20px; height: 20px; background: ${data.color}; border-radius: 50%; border: 1px solid #ccc;"></div>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+        
+        html += `
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div class="alert alert-info mt-3">
+                                <h6><i class="icon icon-chart"></i> Explicación:</h6>
+                                <ul class="mb-0">
+                                    <li><strong>Nodos:</strong> Cantidad de personas en el grupo</li>
+                                    <li><strong>Conexiones Internas:</strong> Relaciones entre miembros del mismo grupo</li>
+                                    <li><strong>Conexiones Externas:</strong> Relaciones con personas de otros grupos</li>
+                                    <li><strong>Densidad Interna:</strong> Porcentaje de conexiones internas respecto al máximo posible</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-primary" onclick="crearBurbujasGrupos()">
+                                <i class="icon icon-refresh"></i> Actualizar Burbujas
+                            </button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Limpiar modal anterior
+        const modalAnterior = document.getElementById('modalEstadisticasGrupos');
+        if (modalAnterior) {
+            modalAnterior.remove();
+        }
+        
+        // Agregar y mostrar nuevo modal
+        document.body.insertAdjacentHTML('beforeend', html);
+        const modal = new bootstrap.Modal(document.getElementById('modalEstadisticasGrupos'));
+        modal.show();
+        
+    } else {
+        console.log('Sistema de estadísticas de grupos no disponible aún');
+        mostrarNotificacion('warning', 'Sistema de grupos aún no está cargado. Intenta en unos segundos.');
+    }
+};
+
+// Función para demostración de grupos
+window.crearGruposDemo = function() {
+    console.log('🧪 Creando grupos de demostración...');
+    
+    if (!nodes) {
+        console.error('Nodes no disponible');
+        return;
+    }
+    
+    // Obtener todos los nodos
+    const todosLosNodos = nodes.get();
+    
+    if (todosLosNodos.length < 4) {
+        console.log('Se necesitan al menos 4 nodos para la demo');
+        mostrarNotificacion('info', 'Agrega más personas para ver una mejor demostración de grupos');
+        return;
+    }
+    
+    // Asignar grupos de ejemplo
+    const updates = [];
+    
+    todosLosNodos.forEach((nodo, index) => {
+        let grupo = null;
+        
+        // Distribuir nodos en grupos de ejemplo
+        if (index % 4 === 0) {
+            grupo = 'universidad';
+        } else if (index % 4 === 1) {
+            grupo = 'trabajo';
+        } else if (index % 4 === 2) {
+            grupo = 'cadiz';
+        } else {
+            grupo = 'amigos';
+        }
+        
+        updates.push({
+            id: nodo.id,
+            grupo: grupo
+        });
+    });
+    
+    // Aplicar cambios
+    nodes.update(updates);
+    
+    // Crear burbujas
+    setTimeout(() => {
+        if (typeof crearBurbujasGrupos === 'function') {
+            crearBurbujasGrupos();
+        }
+    }, 500);
+    
+    mostrarNotificacion('success', '¡Grupos de demostración creados! Ahora puedes ver las burbujas de colores.');
+};
+
+// Función para limpiar grupos demo
+window.limpiarGruposDemo = function() {
+    if (!nodes) return;
+    
+    const todosLosNodos = nodes.get();
+    const updates = todosLosNodos.map(nodo => ({
+        id: nodo.id,
+        grupo: null
+    }));
+    
+    nodes.update(updates);
+    
+    if (typeof limpiarBurbujasAnteriores === 'function') {
+        limpiarBurbujasAnteriores();
+    }
+    
+    mostrarNotificacion('info', 'Grupos de demostración eliminados');
+};
+
+// Función mejorada para mostrar notificación
+function mostrarNotificacion(tipo, mensaje, duracion = 5000) {
+    // Crear contenedor de notificaciones si no existe
+    let container = document.getElementById('notifications-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'notifications-container';
+        container.className = 'notifications-container';
+        document.body.appendChild(container);
+    }
+    
+    // Crear notificación
+    const notificacion = document.createElement('div');
+    notificacion.className = `notification notification-${tipo}`;
+    
+    const iconos = {
+        success: '✅',
+        error: '❌',
+        warning: '⚠️',
+        info: 'ℹ️'
+    };
+    
+    notificacion.innerHTML = `
+        <span class="notification-icon">${iconos[tipo] || 'ℹ️'}</span>
+        <span class="notification-message">${mensaje}</span>
+        <button class="notification-close" onclick="this.parentElement.remove()">×</button>
+    `;
+    
+    container.appendChild(notificacion);
+    
+    // Mostrar notificación
+    setTimeout(() => {
+        notificacion.classList.add('notification-show');
+    }, 100);
+    
+    // Auto-eliminar después de la duración especificada
+    setTimeout(() => {
+        if (notificacion.parentNode) {
+            notificacion.classList.remove('notification-show');
+            setTimeout(() => {
+                if (notificacion.parentNode) {
+                    notificacion.remove();
+                }
+            }, 300);
+        }
+    }, duracion);
+}
+
+// Función de debug global para probar todo el sistema
+window.debugSistemaCompleto = function() {
+    console.log('🔍 DEBUG DEL SISTEMA COMPLETO:');
+    console.log('================================');
+    
+    // Verificar componentes principales
+    console.log('📊 Red principal:', typeof network !== 'undefined' && network ? '✅' : '❌');
+    console.log('👥 Nodos:', typeof nodes !== 'undefined' && nodes ? `✅ (${nodes.length} nodos)` : '❌');
+    console.log('🔗 Aristas:', typeof edges !== 'undefined' && edges ? `✅ (${edges.length} aristas)` : '❌');
+    
+    // Verificar sistemas adicionales
+    console.log('🎯 Creación nodos:', typeof configurarDobleClickCrearNodo === 'function' ? '✅' : '❌');
+    console.log('🔗 Creación aristas:', typeof configurarHoverCrearAristas === 'function' ? '✅' : '❌');
+    console.log('🫧 Sistema burbujas:', typeof crearBurbujasGrupos === 'function' ? '✅' : '❌');
+    console.log('📋 Gestión grupos:', typeof abrirModalGestionGrupos === 'function' ? '✅' : '❌');
+    
+    // Estado de burbujas
+    if (typeof burbujasActivas !== 'undefined') {
+        console.log('🫧 Burbujas activas:', burbujasActivas);
+        console.log('🎨 Opacidad burbujas:', typeof opacidadBurbujas !== 'undefined' ? opacidadBurbujas : 'N/A');
+    }
+    
+    // Estadísticas de grupos
+    if (typeof obtenerEstadisticasGrupos === 'function') {
+        console.log('📊 Estadísticas grupos:', obtenerEstadisticasGrupos());
+    }
+    
+    // Bootstrap
+    console.log('🅱️ Bootstrap:', typeof bootstrap !== 'undefined' ? '✅' : '❌');
+    
+    console.log('================================');
+    console.log('💡 Funciones de prueba disponibles:');
+    console.log('- crearGruposDemo() - Crear grupos de demostración');
+    console.log('- limpiarGruposDemo() - Limpiar grupos demo');
+    console.log('- testBurbujas() - Probar sistema de burbujas');
+    console.log('- testModalRelacion() - Probar modal de relaciones');
+    console.log('- verificarNodos() - Ver todos los nodos disponibles');
+};
+
+// Mostrar mensaje de bienvenida cuando todo esté listo
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
+        // Verificar si todo está cargado
+        const sistemaCompleto = (
+            typeof network !== 'undefined' && network &&
+            typeof crearBurbujasGrupos === 'function' &&
+            typeof abrirModalGestionGrupos === 'function'
+        );
+        
+        if (sistemaCompleto) {
+            console.log('🎉 ¡Sistema completo de red social con grupos cargado exitosamente!');
+            console.log('💡 Ejecuta debugSistemaCompleto() para ver el estado completo');
+            console.log('🧪 Ejecuta crearGruposDemo() para ver una demostración de grupos');
+        }
+    }, 3000);
+});
+</script>
 {% endblock %}
