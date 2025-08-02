@@ -87,7 +87,7 @@
                             <i class="icon icon-users icon-sm"></i>
                             Control Burbujas
                         </button>
-                        <button class="btn btn-outline-secondary btn-custom btn-sm" onclick="obtenerEstadisticasGrupos()">
+                        <button class="btn btn-outline-secondary btn-custom btn-sm" onclick="mostrarEstadisticasGruposModal()">
                             <i class="icon icon-chart icon-sm"></i>
                             Stats Grupos
                         </button>
@@ -143,13 +143,30 @@
 <script src="{{ url_for('static', filename='js/group-bubbles.js') }}"></script>
 <!-- Incluir el sistema de gestión de grupos -->
 <script src="{{ url_for('static', filename='js/group-management.js') }}"></script>
+<!-- Incluir las correcciones de accesibilidad -->
+<script src="{{ url_for('static', filename='js/accessibility-fixes.js') }}"></script>
+<!-- Incluir la corrección específica para aria-hidden -->
+<script src="{{ url_for('static', filename='js/aria-hidden-fix.js') }}"></script>
 
-<!-- Script adicional para integración -->
+<!-- Script CORREGIDO para integración - SIN RECURSIÓN -->
 <script>
-// Función mejorada para mostrar estadísticas de grupos
-window.obtenerEstadisticasGrupos = function() {
-    if (typeof obtenerEstadisticasGrupos === 'function') {
+console.log('🚀 Iniciando scripts de integración...');
+
+// Función CORREGIDA para mostrar estadísticas de grupos - SIN RECURSIÓN
+window.mostrarEstadisticasGruposModal = function() {
+    console.log('📊 Abriendo modal de estadísticas de grupos...');
+    
+    // Verificar que los sistemas estén disponibles
+    if (typeof obtenerEstadisticasGrupos !== 'function') {
+        console.warn('⚠️ Función obtenerEstadisticasGrupos no disponible');
+        mostrarNotificacion('warning', 'Sistema de estadísticas no disponible aún. Intenta en unos segundos.');
+        return;
+    }
+    
+    try {
+        // Llamar a la función SIN recursión - usando la función global
         const stats = obtenerEstadisticasGrupos();
+        console.log('📊 Estadísticas obtenidas:', stats);
         console.table(stats);
         
         // Crear modal para mostrar estadísticas
@@ -184,7 +201,7 @@ window.obtenerEstadisticasGrupos = function() {
             html += '<tr><td colspan="6" class="text-center text-muted">No hay grupos con datos suficientes</td></tr>';
         } else {
             Object.entries(stats).forEach(([grupo, data]) => {
-                const nombreFormateado = formatearNombreGrupo ? formatearNombreGrupo(grupo) : grupo;
+                const nombreFormateado = typeof formatearNombreGrupo === 'function' ? formatearNombreGrupo(grupo) : grupo;
                 html += `
                     <tr>
                         <td><strong>${nombreFormateado}</strong></td>
@@ -216,7 +233,7 @@ window.obtenerEstadisticasGrupos = function() {
                             </div>
                         </div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-primary" onclick="crearBurbujasGrupos()">
+                            <button type="button" class="btn btn-primary" onclick="if(typeof crearBurbujasGrupos === 'function') crearBurbujasGrupos()">
                                 <i class="icon icon-refresh"></i> Actualizar Burbujas
                             </button>
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
@@ -237,9 +254,11 @@ window.obtenerEstadisticasGrupos = function() {
         const modal = new bootstrap.Modal(document.getElementById('modalEstadisticasGrupos'));
         modal.show();
         
-    } else {
-        console.log('Sistema de estadísticas de grupos no disponible aún');
-        mostrarNotificacion('warning', 'Sistema de grupos aún no está cargado. Intenta en unos segundos.');
+        console.log('✅ Modal de estadísticas mostrado correctamente');
+        
+    } catch (error) {
+        console.error('❌ Error obteniendo estadísticas:', error);
+        mostrarNotificacion('error', 'Error al obtener estadísticas de grupos: ' + error.message);
     }
 };
 
@@ -248,7 +267,8 @@ window.crearGruposDemo = function() {
     console.log('🧪 Creando grupos de demostración...');
     
     if (!nodes) {
-        console.error('Nodes no disponible');
+        console.error('❌ Nodes no disponible');
+        mostrarNotificacion('error', 'Sistema de nodos no disponible');
         return;
     }
     
@@ -256,7 +276,7 @@ window.crearGruposDemo = function() {
     const todosLosNodos = nodes.get();
     
     if (todosLosNodos.length < 4) {
-        console.log('Se necesitan al menos 4 nodos para la demo');
+        console.log('⚠️ Se necesitan al menos 4 nodos para la demo');
         mostrarNotificacion('info', 'Agrega más personas para ver una mejor demostración de grupos');
         return;
     }
@@ -291,15 +311,22 @@ window.crearGruposDemo = function() {
     setTimeout(() => {
         if (typeof crearBurbujasGrupos === 'function') {
             crearBurbujasGrupos();
+            console.log('✅ Burbujas de grupos creadas');
         }
     }, 500);
     
     mostrarNotificacion('success', '¡Grupos de demostración creados! Ahora puedes ver las burbujas de colores.');
+    console.log('✅ Grupos demo aplicados a', updates.length, 'nodos');
 };
 
 // Función para limpiar grupos demo
 window.limpiarGruposDemo = function() {
-    if (!nodes) return;
+    console.log('🧹 Limpiando grupos de demostración...');
+    
+    if (!nodes) {
+        console.error('❌ Nodes no disponible');
+        return;
+    }
     
     const todosLosNodos = nodes.get();
     const updates = todosLosNodos.map(nodo => ({
@@ -311,9 +338,11 @@ window.limpiarGruposDemo = function() {
     
     if (typeof limpiarBurbujasAnteriores === 'function') {
         limpiarBurbujasAnteriores();
+        console.log('✅ Burbujas limpiadas');
     }
     
     mostrarNotificacion('info', 'Grupos de demostración eliminados');
+    console.log('✅ Grupos demo eliminados de', updates.length, 'nodos');
 };
 
 // Función mejorada para mostrar notificación
@@ -370,41 +399,55 @@ window.debugSistemaCompleto = function() {
     console.log('================================');
     
     // Verificar componentes principales
-    console.log('📊 Red principal:', typeof network !== 'undefined' && network ? '✅' : '❌');
-    console.log('👥 Nodos:', typeof nodes !== 'undefined' && nodes ? `✅ (${nodes.length} nodos)` : '❌');
-    console.log('🔗 Aristas:', typeof edges !== 'undefined' && edges ? `✅ (${edges.length} aristas)` : '❌');
+    console.log('📊 Red principal:', typeof network !== 'undefined' && network ? '✅ Disponible' : '❌ No disponible');
+    console.log('👥 Nodos:', typeof nodes !== 'undefined' && nodes ? `✅ Disponible (${nodes.length} nodos)` : '❌ No disponible');
+    console.log('🔗 Aristas:', typeof edges !== 'undefined' && edges ? `✅ Disponible (${edges.length} aristas)` : '❌ No disponible');
     
     // Verificar sistemas adicionales
-    console.log('🎯 Creación nodos:', typeof configurarDobleClickCrearNodo === 'function' ? '✅' : '❌');
-    console.log('🔗 Creación aristas:', typeof configurarHoverCrearAristas === 'function' ? '✅' : '❌');
-    console.log('🫧 Sistema burbujas:', typeof crearBurbujasGrupos === 'function' ? '✅' : '❌');
-    console.log('📋 Gestión grupos:', typeof abrirModalGestionGrupos === 'function' ? '✅' : '❌');
+    console.log('🎯 Creación nodos:', typeof configurarDobleClickCrearNodo === 'function' ? '✅ Disponible' : '❌ No disponible');
+    console.log('🔗 Creación aristas:', typeof configurarHoverCrearAristas === 'function' ? '✅ Disponible' : '❌ No disponible');
+    console.log('🫧 Sistema burbujas:', typeof crearBurbujasGrupos === 'function' ? '✅ Disponible' : '❌ No disponible');
+    console.log('📋 Gestión grupos:', typeof abrirModalGestionGrupos === 'function' ? '✅ Disponible' : '❌ No disponible');
     
     // Estado de burbujas
     if (typeof burbujasActivas !== 'undefined') {
-        console.log('🫧 Burbujas activas:', burbujasActivas);
+        console.log('🫧 Burbujas activas:', burbujasActivas ? '✅ Activadas' : '❌ Desactivadas');
         console.log('🎨 Opacidad burbujas:', typeof opacidadBurbujas !== 'undefined' ? opacidadBurbujas : 'N/A');
+    } else {
+        console.log('🫧 Estado burbujas: No disponible');
     }
     
-    // Estadísticas de grupos
-    if (typeof obtenerEstadisticasGrupos === 'function') {
-        console.log('📊 Estadísticas grupos:', obtenerEstadisticasGrupos());
+    // Estadísticas de grupos (SIN RECURSIÓN)
+    try {
+        if (typeof obtenerEstadisticasGrupos === 'function') {
+            const stats = obtenerEstadisticasGrupos();
+            console.log('📊 Estadísticas grupos disponibles:', Object.keys(stats).length, 'grupos');
+            console.table(stats);
+        } else {
+            console.log('📊 Estadísticas grupos: No disponible aún');
+        }
+    } catch (error) {
+        console.log('📊 Estadísticas grupos: Error -', error.message);
     }
     
     // Bootstrap
-    console.log('🅱️ Bootstrap:', typeof bootstrap !== 'undefined' ? '✅' : '❌');
+    console.log('🅱️ Bootstrap:', typeof bootstrap !== 'undefined' ? '✅ Disponible' : '❌ No disponible');
     
     console.log('================================');
     console.log('💡 Funciones de prueba disponibles:');
     console.log('- crearGruposDemo() - Crear grupos de demostración');
     console.log('- limpiarGruposDemo() - Limpiar grupos demo');
-    console.log('- testBurbujas() - Probar sistema de burbujas');
-    console.log('- testModalRelacion() - Probar modal de relaciones');
-    console.log('- verificarNodos() - Ver todos los nodos disponibles');
+    console.log('- mostrarEstadisticasGruposModal() - Ver estadísticas en modal');
+    console.log('- testBurbujas() - Probar sistema de burbujas (si está disponible)');
+    console.log('- testModalRelacion() - Probar modal de relaciones (si está disponible)');
+    console.log('- verificarNodos() - Ver todos los nodos disponibles (si está disponible)');
+    console.log('================================');
 };
 
 // Mostrar mensaje de bienvenida cuando todo esté listo
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('📄 DOM cargado, esperando sistemas...');
+    
     setTimeout(function() {
         // Verificar si todo está cargado
         const sistemaCompleto = (
@@ -417,8 +460,14 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('🎉 ¡Sistema completo de red social con grupos cargado exitosamente!');
             console.log('💡 Ejecuta debugSistemaCompleto() para ver el estado completo');
             console.log('🧪 Ejecuta crearGruposDemo() para ver una demostración de grupos');
+            console.log('📊 Ejecuta mostrarEstadisticasGruposModal() para ver estadísticas');
+            console.log('✨ ¡Todo listo para usar!');
+        } else {
+            console.log('⏳ Sistema aún cargando... ejecuta debugSistemaCompleto() para ver el estado');
         }
     }, 3000);
 });
+
+console.log('✅ Scripts de integración cargados correctamente');
 </script>
 {% endblock %}

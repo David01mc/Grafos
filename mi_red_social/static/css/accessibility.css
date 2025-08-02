@@ -1,0 +1,327 @@
+/* static/css/accessibility.css - Estilos de accesibilidad */
+
+/* ========== MEJORAS DE FOCO VISIBLE ========== */
+/* Mejorar visibilidad del foco para usuarios de teclado */
+*:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+/* Foco visible mejorado para botones */
+.btn:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
+}
+
+/* Foco visible para tabs */
+.nav-tabs .nav-link:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+    border-color: #3b82f6;
+}
+
+/* Foco visible para cards interactivas */
+.node-grupo-card:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
+}
+
+/* ========== MEJORAS PARA LECTORES DE PANTALLA ========== */
+/* Ocultar elementos decorativos de lectores de pantalla */
+.icon {
+    aria-hidden: true;
+}
+
+/* Texto solo para lectores de pantalla */
+.sr-only {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
+/* ========== MEJORAS PARA ELEMENTOS INTERACTIVOS ========== */
+/* Hacer cards clickeables más accesibles */
+.node-grupo-card {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.node-grupo-card:hover {
+    background-color: #f8fafc;
+}
+
+.node-grupo-card:focus {
+    background-color: #f1f5f9;
+}
+
+.node-grupo-card[aria-checked="true"] {
+    background-color: rgba(16, 185, 129, 0.1);
+    border-color: #10b981;
+}
+
+/* ========== MEJORAS DE CONTRASTE ========== */
+/* Asegurar contraste suficiente */
+.text-muted {
+    color: #64748b !important; /* Mejor contraste que el gris por defecto */
+}
+
+/* Mejorar contraste en badges */
+.badge.bg-light {
+    color: #1e293b !important;
+    background-color: #f1f5f9 !important;
+}
+
+/* ========== MEJORAS PARA MOTION REDUCTION ========== */
+/* Respetar preferencias de movimiento reducido */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+    
+    .notification {
+        transition: none !important;
+        animation: none !important;
+    }
+    
+    .burbuja-grupo {
+        animation: none !important;
+    }
+}
+
+/* ========== MEJORAS PARA HIGH CONTRAST ========== */
+/* Mejoras para modo de alto contraste */
+@media (prefers-contrast: high) {
+    .btn {
+        border-width: 2px;
+    }
+    
+    .card {
+        border-width: 2px;
+    }
+    
+    .node-grupo-card:focus {
+        border-width: 3px;
+        border-color: #000;
+    }
+    
+    .nav-tabs .nav-link.active {
+        border-bottom-color: #000;
+    }
+}
+
+/* ========== MEJORAS PARA NAVEGACIÓN POR TECLADO ========== */
+/* Indicadores claros para navegación por teclado */
+.btn:focus:not(:focus-visible) {
+    outline: none;
+}
+
+.nav-link:focus:not(:focus-visible) {
+    outline: none;
+}
+
+/* Skip links para navegación rápida */
+.skip-link {
+    position: absolute;
+    top: -40px;
+    left: 6px;
+    background: #000;
+    color: #fff;
+    padding: 8px;
+    z-index: 1000;
+    text-decoration: none;
+    border-radius: 4px;
+}
+
+.skip-link:focus {
+    top: 6px;
+}
+
+/* ========== MEJORAS PARA FORMULARIOS ========== */
+/* Mejor visibilidad de campos requeridos */
+.form-control:required {
+    border-left: 3px solid #ef4444;
+}
+
+.form-control:required:valid {
+    border-left-color: #10b981;
+}
+
+/* Mensajes de error más visibles */
+.invalid-feedback {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+/* ========== MEJORAS PARA MODALES ========== */
+/* Asegurar que los modales sean accesibles */
+.modal {
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+.modal-dialog {
+    margin: 1.75rem auto;
+    max-width: calc(100vw - 2rem);
+}
+
+/* Mejor visibilidad del botón de cerrar */
+.btn-close {
+    opacity: 0.8;
+    transition: opacity 0.2s ease;
+}
+
+.btn-close:hover,
+.btn-close:focus {
+    opacity: 1;
+}
+
+/* ========== MEJORAS PARA TABLAS ========== */
+/* Mejor accesibilidad en tablas */
+.table th {
+    font-weight: 600;
+}
+
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* ========== MEJORAS PARA TOOLTIPS Y POPOVER ========== */
+/* Asegurar que tooltips sean accesibles */
+.tooltip {
+    font-size: 0.875rem;
+    line-height: 1.4;
+}
+
+/* ========== MEJORAS PARA ESTADOS DE LOADING ========== */
+/* Indicadores de carga accesibles */
+.loading {
+    position: relative;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 20px;
+    border: 2px solid #e5e7eb;
+    border-top-color: #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* ========== MEJORAS PARA NOTIFICACIONES ========== */
+/* Notificaciones más accesibles */
+.notification {
+    border-left-width: 4px;
+    role: alert;
+    aria-live: polite;
+}
+
+.notification-error {
+    aria-live: assertive;
+}
+
+/* ========== MEJORAS ESPECÍFICAS PARA EL SISTEMA DE GRUPOS ========== */
+/* Mejorar visibilidad de grupos seleccionados */
+.grupo-seleccionado {
+    background-color: rgba(16, 185, 129, 0.1) !important;
+    border-color: #10b981 !important;
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2) !important;
+}
+
+/* Mejor indicación de estado activo en tabs */
+.nav-tabs .nav-link[aria-selected="true"] {
+    font-weight: 600;
+    border-bottom-width: 3px;
+}
+
+/* Mejores indicadores para checkboxes */
+.form-check-input:checked {
+    background-color: #10b981;
+    border-color: #10b981;
+}
+
+.form-check-input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 0.25rem rgba(59, 130, 246, 0.25);
+}
+
+/* ========== MEJORAS PARA PANTALLAS PEQUEÑAS ========== */
+/* Asegurar accesibilidad en móviles */
+@media (max-width: 768px) {
+    .btn {
+        min-height: 44px; /* Tamaño mínimo recomendado para touch */
+        min-width: 44px;
+    }
+    
+    .form-control {
+        min-height: 44px;
+    }
+    
+    .nav-tabs .nav-link {
+        padding: 12px 16px;
+    }
+}
+
+/* ========== UTILIDADES DE ACCESIBILIDAD ========== */
+/* Utilidades para ocultar/mostrar contenido */
+.accessible-hide {
+    clip: rect(1px, 1px, 1px, 1px);
+    clip-path: inset(50%);
+    height: 1px;
+    width: 1px;
+    margin: -1px;
+    overflow: hidden;
+    padding: 0;
+    position: absolute;
+}
+
+/* Para mostrar solo en hover/focus */
+.show-on-focus {
+    position: absolute;
+    left: -9999px;
+}
+
+.show-on-focus:focus {
+    position: static;
+    left: auto;
+}
+
+/* ========== MEJORAS PARA DARK MODE ========== */
+/* Preparación para modo oscuro accesible */
+@media (prefers-color-scheme: dark) {
+    *:focus {
+        outline-color: #60a5fa;
+    }
+    
+    .btn:focus-visible {
+        outline-color: #60a5fa;
+        box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.2);
+    }
+    
+    .text-muted {
+        color: #94a3b8 !important;
+    }
+}
