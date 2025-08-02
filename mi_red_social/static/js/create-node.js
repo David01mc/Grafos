@@ -1,4 +1,4 @@
-// static/js/create-node.js - Sistema de creación de nodos con template HTML externo
+// static/js/create-node.js - Sistema de creación de nodos con template HTML externo - VERSIÓN CORREGIDA
 
 let creandoNodo = false;
 let modalCrearNodo = null;
@@ -44,13 +44,46 @@ async function cargarTemplateModal() {
     }
 }
 
-// Función para crear el modal de creación de nodo
-async function crearModalNodo() {
-    // Verificar si ya existe el modal
+// Función para limpiar completamente el modal anterior
+function limpiarModalAnterior() {
+    // Buscar modal existente
     const modalExistente = document.getElementById('modalCrearNodo');
     if (modalExistente) {
+        console.log('🧹 Limpiando modal anterior...');
+        
+        // Si el modal está abierto, cerrarlo primero
+        const bsModal = bootstrap.Modal.getInstance(modalExistente);
+        if (bsModal) {
+            bsModal.dispose(); // Eliminar la instancia de Bootstrap
+        }
+        
+        // Eliminar backdrop si existe
+        const backdrop = document.querySelector('.modal-backdrop');
+        if (backdrop) {
+            backdrop.remove();
+            console.log('🧹 Backdrop eliminado');
+        }
+        
+        // Eliminar el modal del DOM
         modalExistente.remove();
+        
+        // Restaurar el scroll del body (por si quedó bloqueado)
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+        
+        console.log('✅ Modal anterior limpiado completamente');
     }
+    
+    // Reset de variables
+    modalCrearNodo = null;
+    creandoNodo = false;
+}
+
+// Función para crear el modal de creación de nodo
+async function crearModalNodo() {
+    // Limpiar modal anterior completamente
+    limpiarModalAnterior();
     
     // Cargar template HTML
     const modalHTML = await cargarTemplateModal();
@@ -62,14 +95,18 @@ async function crearModalNodo() {
     const modalElement = document.getElementById('modalCrearNodo');
     if (!modalElement) {
         console.error('❌ Error: No se pudo crear el modal');
-        return;
+        return false;
     }
     
     // Inicializar modal de Bootstrap
-    modalCrearNodo = new bootstrap.Modal(modalElement);
+    modalCrearNodo = new bootstrap.Modal(modalElement, {
+        backdrop: 'static', // No cerrar al hacer clic fuera
+        keyboard: true      // Permitir cerrar con ESC
+    });
     
     // Configurar eventos del modal
     modalElement.addEventListener('shown.bs.modal', function() {
+        console.log('✅ Modal mostrado correctamente');
         const nombreInput = document.getElementById('nombreNodo');
         if (nombreInput) {
             nombreInput.focus();
@@ -78,15 +115,13 @@ async function crearModalNodo() {
     
     // Limpiar formulario al cerrar modal
     modalElement.addEventListener('hidden.bs.modal', function() {
+        console.log('🔄 Modal ocultado, limpiando estado...');
         limpiarFormularioNodo();
-        creandoNodo = false;
         
-        // Asegurar que el botón vuelva a su estado original
-        const botonGuardar = document.getElementById('btnGuardarNodo');
-        if (botonGuardar) {
-            botonGuardar.innerHTML = '<i class="icon icon-plus icon-white"></i> Crear Persona';
-            botonGuardar.disabled = false;
-        }
+        // Limpiar completamente después de cerrar
+        setTimeout(() => {
+            limpiarModalAnterior();
+        }, 100);
     });
     
     // Configurar preview del color
@@ -101,6 +136,7 @@ async function crearModalNodo() {
     configurarValidacionFormulario();
     
     console.log('✅ Modal creado y configurado correctamente');
+    return true;
 }
 
 // Función para configurar la funcionalidad de doble clic
@@ -186,15 +222,22 @@ function mostrarIndicadorPosicion(canvasPos) {
 
 // Función para abrir el modal de creación
 async function abrirModalCrearNodo() {
+    // Evitar múltiples modales
+    if (creandoNodo) {
+        console.log('⚠️ Ya se está creando un nodo, ignorando doble clic');
+        return;
+    }
+    
     creandoNodo = true;
     
     // Crear el modal cargando el template
-    await crearModalNodo();
+    const modalCreado = await crearModalNodo();
     
     // Verificar que el modal se creó correctamente
-    if (!modalCrearNodo) {
+    if (!modalCreado || !modalCrearNodo) {
         console.error('❌ Error: No se pudo crear el modal');
         mostrarNotificacion('error', 'Error al abrir el formulario. Usa el panel de administración.');
+        creandoNodo = false;
         return;
     }
     
@@ -202,10 +245,18 @@ async function abrirModalCrearNodo() {
     limpiarFormularioNodo();
     
     // Mostrar modal
-    modalCrearNodo.show();
-    
-    // Mostrar notificación
-    mostrarNotificacion('info', 'Completa los datos para crear una nueva persona en esta posición');
+    try {
+        modalCrearNodo.show();
+        console.log('✅ Modal mostrado correctamente');
+        
+        // Mostrar notificación
+        mostrarNotificacion('info', 'Completa los datos para crear una nueva persona en esta posición');
+        
+    } catch (error) {
+        console.error('❌ Error mostrando modal:', error);
+        limpiarModalAnterior();
+        mostrarNotificacion('error', 'Error al mostrar el formulario');
+    }
 }
 
 // Función para limpiar el formulario
@@ -215,12 +266,19 @@ function limpiarFormularioNodo() {
     const colorInput = document.getElementById('colorNodo');
     const grupoInput = document.getElementById('grupoNodo');
     const descripcionInput = document.getElementById('descripcionNodo');
+    const botonGuardar = document.getElementById('btnGuardarNodo');
     
     if (nombreInput) nombreInput.value = '';
     if (emojiInput) emojiInput.value = '';
     if (colorInput) colorInput.value = '#4ecdc4';
     if (grupoInput) grupoInput.value = 'amigos';
     if (descripcionInput) descripcionInput.value = '';
+    
+    // Restaurar botón
+    if (botonGuardar) {
+        botonGuardar.innerHTML = '<i class="icon icon-plus icon-white"></i> Crear Persona';
+        botonGuardar.disabled = false;
+    }
     
     // Limpiar preview del color
     const preview = document.querySelector('.color-preview-modal');
@@ -290,7 +348,21 @@ function configurarValidacionFormulario() {
     }
 }
 
-// Función para guardar el nuevo nodo
+// Función para cerrar modal de forma segura
+function cerrarModalSeguro() {
+    if (modalCrearNodo) {
+        try {
+            modalCrearNodo.hide();
+            console.log('✅ Modal cerrado correctamente');
+        } catch (error) {
+            console.error('❌ Error cerrando modal:', error);
+            // Forzar limpieza si hay error
+            limpiarModalAnterior();
+        }
+    }
+}
+
+// Función para guardar el nuevo nodo - VERSIÓN CORREGIDA
 async function guardarNuevoNodo() {
     const form = document.getElementById('formCrearNodo');
     if (!form) {
@@ -336,8 +408,11 @@ async function guardarNuevoNodo() {
         if (response.ok) {
             console.log('✅ Persona creada exitosamente');
             
-            // Cerrar modal
-            modalCrearNodo.hide();
+            // Cerrar modal de forma segura
+            cerrarModalSeguro();
+            
+            // Esperar un poco para que el modal se cierre completamente
+            await new Promise(resolve => setTimeout(resolve, 300));
             
             // Recargar SOLO los datos del grafo, sin recrear la red
             await recargarSoloDatos();
@@ -354,13 +429,19 @@ async function guardarNuevoNodo() {
             const errorText = await response.text();
             console.error('❌ Error del servidor:', errorText);
             mostrarNotificacion('error', 'Error al crear la persona: ' + errorText);
+            
+            // Restaurar botón en caso de error
+            if (botonGuardar) {
+                botonGuardar.innerHTML = textoOriginal;
+                botonGuardar.disabled = false;
+            }
         }
         
     } catch (error) {
         console.error('❌ Error creando nodo:', error);
         mostrarNotificacion('error', 'Error de conexión al crear la persona');
-    } finally {
-        // Restaurar botón SIEMPRE
+        
+        // Restaurar botón en caso de error
         if (botonGuardar) {
             botonGuardar.innerHTML = textoOriginal;
             botonGuardar.disabled = false;
@@ -557,9 +638,7 @@ function inicializarCreacionNodos() {
 // Función para manejar tecla ESC para cancelar
 document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape' && creandoNodo) {
-        if (modalCrearNodo) {
-            modalCrearNodo.hide();
-        }
+        cerrarModalSeguro();
     }
 });
 
