@@ -1,75 +1,358 @@
-// static/js/group-bubbles.js - Sistema de burbujas de grupos para agrupar nodos visualmente
+// static/js/group-bubbles.js - Sistema de burbujas de grupos COMPLETO Y FUNCIONAL
 
 let gruposBurbujas = {};
 let burbujasActivas = true;
 let opacidadBurbujas = 0.15;
 let coloresGrupos = {};
 
-// Función para inicializar el sistema de burbujas
-function inicializarSistemaBurbujas() {
-    if (!network || !nodes) {
-        console.warn('⚠️ Red no inicializada, no se pueden crear burbujas');
-        return;
+// ========== FUNCIONES AUXILIARES ==========
+
+// Función para crear SVG de forma robusta - CON TRANSFORMACIÓN EN TIEMPO REAL
+function crearSVGRobusto(container) {
+    // Eliminar SVG anterior si existe
+    const svgAnterior = container.querySelector('.burbujas-svg');
+    if (svgAnterior) {
+        svgAnterior.remove();
+        console.log('🧹 SVG anterior eliminado');
     }
     
-    console.log('🫧 Inicializando sistema de burbujas de grupos...');
+    // Obtener dimensiones reales del contenedor
+    const rect = container.getBoundingClientRect();
     
-    // Configurar colores por defecto para grupos
-    configurarColoresGrupos();
+    // Crear nuevo SVG con configuración robusta Y limitado al contenedor
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.classList.add('burbujas-svg');
+    svg.style.cssText = `
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        pointer-events: none !important;
+        z-index: 1 !important;
+        overflow: hidden !important;
+        clip-path: inset(0) !important;
+    `;
     
-    // Crear burbujas iniciales
-    crearBurbujasGrupos();
+    // Establecer viewBox para que coincida con el contenedor
+    svg.setAttribute('viewBox', `0 0 ${rect.width} ${rect.height}`);
+    svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
     
-    // Configurar eventos para actualizar burbujas
-    configurarEventosBurbujas();
+    // Crear grupo principal que contendrá todas las burbujas
+    const grupoTransformable = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    grupoTransformable.classList.add('grupo-burbujas-transformable');
+    svg.appendChild(grupoTransformable);
     
-    console.log('✅ Sistema de burbujas inicializado');
+    // Insertar SVG al inicio del contenedor para mejor compatibilidad
+    container.insertBefore(svg, container.firstChild);
+    console.log('✅ SVG robusto creado con grupo transformable');
+    
+    return svg;
 }
 
-// Función para configurar colores únicos para cada grupo
-function configurarColoresGrupos() {
-    const coloresPredefinidos = [
-        '#FF6B6B', // Rojo coral
-        '#4ECDC4', // Turquesa
-        '#45B7D1', // Azul cielo
-        '#96CEB4', // Verde menta
-        '#FFEAA7', // Amarillo suave
-        '#DDA0DD', // Violeta suave
-        '#F39C12', // Naranja
-        '#E74C3C', // Rojo
-        '#9B59B6', // Púrpura
-        '#2ECC71', // Verde
-        '#3498DB', // Azul
-        '#F1C40F'  // Amarillo
-    ];
+// Función para crear círculo para un solo nodo - COORDENADAS FIJAS AL GRAFO
+function crearCirculoGrupoFijo(grupoSvg, posicion, nombreGrupo, color) {
+    // Usar coordenadas directas del grafo
+    const radius = 60; // Radio fijo en coordenadas del grafo
     
-    let colorIndex = 0;
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    circle.setAttribute('cx', posicion.x);
+    circle.setAttribute('cy', posicion.y);
+    circle.setAttribute('r', radius);
+    circle.setAttribute('fill', color);
+    circle.setAttribute('fill-opacity', opacidadBurbujas);
+    circle.setAttribute('stroke', color);
+    circle.setAttribute('stroke-width', '3');
+    circle.setAttribute('stroke-dasharray', '10,10');
+    circle.setAttribute('stroke-opacity', '0.8');
+    circle.classList.add('burbuja-grupo');
+    circle.setAttribute('data-grupo', nombreGrupo);
     
-    // Obtener todos los grupos únicos
-    const grupos = obtenerGruposUnicos();
+    grupoSvg.appendChild(circle);
     
-    grupos.forEach(grupo => {
-        if (!coloresGrupos[grupo]) {
-            coloresGrupos[grupo] = coloresPredefinidos[colorIndex % coloresPredefinidos.length];
-            colorIndex++;
+    // Crear etiqueta
+    crearEtiquetaGrupoFija(grupoSvg, posicion.x, posicion.y - radius - 20, nombreGrupo, color);
+}
+
+// Función para crear elipse para múltiples nodos - COORDENADAS FIJAS AL GRAFO
+function crearElipseGrupoFijo(grupoSvg, posiciones, nombreGrupo, color) {
+    // Calcular área contenedora en coordenadas del grafo
+    const margen = 50; // Margen en coordenadas del grafo
+    const minX = Math.min(...posiciones.map(p => p.x)) - margen;
+    const maxX = Math.max(...posiciones.map(p => p.x)) + margen;
+    const minY = Math.min(...posiciones.map(p => p.y)) - margen;
+    const maxY = Math.max(...posiciones.map(p => p.y)) + margen;
+    
+    const centerX = (minX + maxX) / 2;
+    const centerY = (minY + maxY) / 2;
+    const width = maxX - minX;
+    const height = maxY - minY;
+    
+    const ellipse = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+    ellipse.setAttribute('cx', centerX);
+    ellipse.setAttribute('cy', centerY);
+    ellipse.setAttribute('rx', Math.max(width / 2, 60));
+    ellipse.setAttribute('ry', Math.max(height / 2, 45));
+    ellipse.setAttribute('fill', color);
+    ellipse.setAttribute('fill-opacity', opacidadBurbujas);
+    ellipse.setAttribute('stroke', color);
+    ellipse.setAttribute('stroke-width', '3');
+    ellipse.setAttribute('stroke-dasharray', '10,10');
+    ellipse.setAttribute('stroke-opacity', '0.8');
+    ellipse.classList.add('burbuja-grupo');
+    ellipse.setAttribute('data-grupo', nombreGrupo);
+    
+    grupoSvg.appendChild(ellipse);
+    
+    // Crear etiqueta
+    const etiquetaY = centerY - Math.max(height / 2, 45) - 25;
+    crearEtiquetaGrupoFija(grupoSvg, centerX, etiquetaY, nombreGrupo, color);
+}
+
+// Función para crear etiquetas - COORDENADAS FIJAS AL GRAFO
+function crearEtiquetaGrupoFija(grupoSvg, x, y, nombreGrupo, color) {
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('x', x);
+    text.setAttribute('y', y);
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('dominant-baseline', 'middle');
+    text.style.cssText = `
+        font-family: 'Inter', system-ui, sans-serif;
+        font-size: 16px;
+        font-weight: 700;
+        fill: ${color};
+        text-shadow: 2px 2px 4px rgba(255,255,255,0.9);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        pointer-events: none;
+        user-select: none;
+    `;
+    text.textContent = formatearNombreGrupo(nombreGrupo);
+    text.classList.add('etiqueta-grupo');
+    text.setAttribute('data-grupo', nombreGrupo);
+    
+    grupoSvg.appendChild(text);
+}
+
+// Función para aplicar transformación en tiempo real
+function aplicarTransformacionBurbujas() {
+    const container = document.getElementById('network');
+    const svg = container.querySelector('.burbujas-svg');
+    const grupoTransformable = svg?.querySelector('.grupo-burbujas-transformable');
+    
+    if (!grupoTransformable || !network) return;
+    
+    // Obtener transformación actual del grafo
+    const scale = network.getScale();
+    const viewPosition = network.getViewPosition();
+    const rect = container.getBoundingClientRect();
+    
+    // Calcular transformación CSS que coincida con la del grafo
+    const translateX = rect.width / 2 - viewPosition.x * scale;
+    const translateY = rect.height / 2 - viewPosition.y * scale;
+    
+    // Aplicar transformación al grupo
+    grupoTransformable.setAttribute('transform', 
+        `translate(${translateX}, ${translateY}) scale(${scale})`
+    );
+}
+
+// Función robusta para crear burbuja individual - POSICIONES FIJAS AL GRAFO
+function crearBurbujaGrupoRobusta(nombreGrupo, nodosGrupo, svg, coloresGrupos, index) {
+    try {
+        // Obtener el grupo transformable donde añadiremos las burbujas
+        let grupoTransformable = svg.querySelector('.grupo-burbujas-transformable');
+        if (!grupoTransformable) {
+            grupoTransformable = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            grupoTransformable.classList.add('grupo-burbujas-transformable');
+            svg.appendChild(grupoTransformable);
         }
-    });
-    
-    console.log('🎨 Colores de grupos configurados:', coloresGrupos);
+        
+        // Obtener posiciones de los nodos EN COORDENADAS DEL GRAFO (sin transformar)
+        const posicionesRed = network.getPositions();
+        const posiciones = [];
+        
+        // Obtener dimensiones del contenedor para referencia
+        const container = document.getElementById('network');
+        const rect = container.getBoundingClientRect();
+        
+        nodosGrupo.forEach(nodo => {
+            const pos = posicionesRed[nodo.id];
+            if (pos) {
+                // Usar coordenadas directas del grafo (sin transformar)
+                // Estas coordenadas se transformarán automáticamente con el grupo
+                posiciones.push({
+                    x: pos.x,
+                    y: pos.y
+                });
+            }
+        });
+        
+        if (posiciones.length === 0) {
+            console.warn(`⚠️ No se encontraron posiciones para el grupo ${nombreGrupo}`);
+            return false;
+        }
+        
+        const color = coloresGrupos[nombreGrupo] || `hsl(${index * 45}, 70%, 60%)`;
+        
+        if (posiciones.length === 1) {
+            // Un solo nodo - crear círculo
+            const pos = posiciones[0];
+            crearCirculoGrupoFijo(grupoTransformable, pos, nombreGrupo, color);
+        } else {
+            // Múltiples nodos - crear elipse contenedora
+            crearElipseGrupoFijo(grupoTransformable, posiciones, nombreGrupo, color);
+        }
+        
+        // Aplicar transformación inicial
+        aplicarTransformacionBurbujas();
+        
+        return true;
+        
+    } catch (error) {
+        console.error(`❌ Error creando burbuja para ${nombreGrupo}:`, error);
+        return false;
+    }
 }
 
-// Función para obtener grupos únicos de los nodos
-function obtenerGruposUnicos() {
-    const grupos = new Set();
+// Función para formatear nombre del grupo para mostrar
+function formatearNombreGrupo(nombreGrupo) {
+    if (!nombreGrupo || nombreGrupo === 'sin_grupo') return 'Sin grupo';
+    
+    const nombres = {
+        'universidad': '🎓 Universidad',
+        'trabajo': '💼 Trabajo',
+        'familia_cercana': '👨‍👩‍👧‍👦 Familia',
+        'amigos': '👫 Amigos',
+        'deportes': '⚽ Deportes',
+        'vecinos': '🏠 Vecinos',
+        'cadiz': '🏖️ Cádiz',
+        'madrid': '🏙️ Madrid',
+        'sevilla': '🌞 Sevilla',
+        'barcelona': '🏛️ Barcelona',
+        'equipo_directo': '👥 Equipo Directo',
+        'colaboradores': '🤝 Colaboradores',
+        'otros_departamentos': '🏢 Otros Depto',
+        'departamento': '🏢 Departamento',
+        'externos': '🌐 Externos',
+        'nuevo': '✨ Nuevo'
+    };
+    
+    return nombres[nombreGrupo] || nombreGrupo.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+}
+
+// Función para agrupar nodos por su grupo
+function agruparNodosPorGrupo() {
+    const grupos = {};
     
     nodes.forEach(nodo => {
-        if (nodo.grupo && nodo.grupo !== 'sin_grupo') {
-            grupos.add(nodo.grupo);
+        const grupo = nodo.grupo || 'sin_grupo';
+        
+        if (!grupos[grupo]) {
+            grupos[grupo] = [];
+        }
+        
+        grupos[grupo].push(nodo);
+    });
+    
+    // Eliminar grupo 'sin_grupo' si existe
+    delete grupos.sin_grupo;
+    
+    return grupos;
+}
+
+// Función para limpiar burbujas anteriores - MEJORADA
+function limpiarBurbujasAnteriores() {
+    const container = document.getElementById('network');
+    if (!container) return;
+    
+    // Buscar y eliminar todos los SVG de burbujas
+    const svgs = container.querySelectorAll('.burbujas-svg');
+    svgs.forEach(svg => {
+        svg.remove();
+        console.log('🧹 SVG de burbujas eliminado');
+    });
+    
+    // También eliminar cualquier SVG suelto que pueda haber quedado
+    const svgsSueltos = container.querySelectorAll('svg');
+    svgsSueltos.forEach(svg => {
+        if (svg.querySelector('.burbuja-grupo') || svg.querySelector('.etiqueta-grupo')) {
+            svg.remove();
+            console.log('🧹 SVG suelto de burbujas eliminado');
         }
     });
     
-    return Array.from(grupos);
+    // Limpiar referencia de grupos
+    gruposBurbujas = {};
+    
+    console.log('✅ Limpieza de burbujas completada');
 }
+
+// Función para agregar CSS de animaciones
+function agregarCSSAnimaciones() {
+    if (document.getElementById('burbujas-css-animaciones')) return;
+    
+    const style = document.createElement('style');
+    style.id = 'burbujas-css-animaciones';
+    style.textContent = `
+        @keyframes pulso-burbuja-suave {
+            0%, 100% { 
+                stroke-opacity: 0.5;
+                fill-opacity: ${opacidadBurbujas};
+                transform: scale(1);
+            }
+            50% { 
+                stroke-opacity: 0.9;
+                fill-opacity: ${opacidadBurbujas * 1.5};
+                transform: scale(1.01);
+            }
+        }
+        
+        .burbuja-grupo {
+            animation: pulso-burbuja-suave 4s ease-in-out infinite;
+            transform-origin: center;
+            transition: all 0.3s ease;
+        }
+        
+        .burbuja-grupo:hover {
+            stroke-width: 3px !important;
+            fill-opacity: ${opacidadBurbujas * 2} !important;
+            stroke-opacity: 1 !important;
+            transform: scale(1.02) !important;
+            animation-play-state: paused;
+        }
+        
+        .etiqueta-grupo {
+            pointer-events: none !important;
+            user-select: none !important;
+        }
+        
+        /* Estilos específicos para grupos conocidos */
+        .burbuja-grupo[data-grupo="universidad"] {
+            stroke: #3498DB;
+            fill: #3498DB;
+        }
+        
+        .burbuja-grupo[data-grupo="trabajo"] {
+            stroke: #2C3E50;
+            fill: #2C3E50;
+        }
+        
+        .burbuja-grupo[data-grupo="familia_cercana"] {
+            stroke: #E74C3C;
+            fill: #E74C3C;
+        }
+        
+        .burbuja-grupo[data-grupo="amigos"] {
+            stroke: #1ABC9C;
+            fill: #1ABC9C;
+        }
+    `;
+    document.head.appendChild(style);
+    console.log('🎨 CSS de animaciones agregado permanentemente');
+}
+
+// ========== FUNCIONES PRINCIPALES ==========
 
 // Función principal para crear burbujas de grupos - VERSIÓN ROBUSTA
 function crearBurbujasGrupos() {
@@ -150,307 +433,20 @@ function crearBurbujasGrupos() {
     }, 300);
 }
 
-// Función para agrupar nodos por su grupo
-function agruparNodosPorGrupo() {
-    const grupos = {};
-    
-    nodes.forEach(nodo => {
-        const grupo = nodo.grupo || 'sin_grupo';
-        
-        if (!grupos[grupo]) {
-            grupos[grupo] = [];
-        }
-        
-        grupos[grupo].push(nodo);
-    });
-    
-    // Eliminar grupo 'sin_grupo' si existe
-    delete grupos.sin_grupo;
-    
-    return grupos;
-}
-
-// Función para crear una burbuja individual para un grupo
-function crearBurbujaGrupo(nombreGrupo, nodosGrupo) {
-    // Obtener posiciones de los nodos
-    const posiciones = obtenerPosicionesNodos(nodosGrupo);
-    
-    if (posiciones.length < 2) return;
-    
-    // Calcular convex hull (envolvente convexa)
-    const puntosHull = calcularConvexHull(posiciones);
-    
-    if (puntosHull.length < 3) return;
-    
-    // Expandir la burbuja para que sea más grande que los nodos
-    const puntosExpandidos = expandirPuntos(puntosHull, 50); // 50px de margen
-    
-    // Crear elemento SVG para la burbuja
-    crearElementoBurbuja(nombreGrupo, puntosExpandidos);
-}
-
-// Función para obtener posiciones actuales de los nodos
-function obtenerPosicionesNodos(nodosGrupo) {
-    const posiciones = [];
-    const posicionesActuales = network.getPositions();
-    
-    nodosGrupo.forEach(nodo => {
-        const pos = posicionesActuales[nodo.id];
-        if (pos) {
-            // Convertir coordenadas del grafo a coordenadas DOM
-            const posDOM = network.canvasToDOM(pos);
-            posiciones.push({
-                x: posDOM.x,
-                y: posDOM.y,
-                id: nodo.id
-            });
-        }
-    });
-    
-    return posiciones;
-}
-
-// Función para calcular convex hull usando algoritmo de Graham
-function calcularConvexHull(puntos) {
-    if (puntos.length < 3) return puntos;
-    
-    // Encontrar el punto más abajo y más a la izquierda
-    let inicio = 0;
-    for (let i = 1; i < puntos.length; i++) {
-        if (puntos[i].y < puntos[inicio].y || 
-            (puntos[i].y === puntos[inicio].y && puntos[i].x < puntos[inicio].x)) {
-            inicio = i;
-        }
-    }
-    
-    // Ordenar puntos por ángulo polar respecto al punto inicial
-    const puntoInicio = puntos[inicio];
-    const otrosPuntos = puntos.filter((_, i) => i !== inicio);
-    
-    otrosPuntos.sort((a, b) => {
-        const anguloA = Math.atan2(a.y - puntoInicio.y, a.x - puntoInicio.x);
-        const anguloB = Math.atan2(b.y - puntoInicio.y, b.x - puntoInicio.x);
-        return anguloA - anguloB;
-    });
-    
-    // Algoritmo de Graham scan simplificado
-    const hull = [puntoInicio];
-    
-    for (let i = 0; i < otrosPuntos.length; i++) {
-        // Eliminar puntos que crean giros en sentido horario
-        while (hull.length > 1 && 
-               orientacion(hull[hull.length - 2], hull[hull.length - 1], otrosPuntos[i]) <= 0) {
-            hull.pop();
-        }
-        hull.push(otrosPuntos[i]);
-    }
-    
-    return hull;
-}
-
-// Función auxiliar para determinar orientación de tres puntos
-function orientacion(p, q, r) {
-    return (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y);
-}
-
-// Función para expandir los puntos del hull para crear margen
-function expandirPuntos(puntos, margen) {
-    if (puntos.length < 3) return puntos;
-    
-    // Calcular centroide
-    const centroide = {
-        x: puntos.reduce((sum, p) => sum + p.x, 0) / puntos.length,
-        y: puntos.reduce((sum, p) => sum + p.y, 0) / puntos.length
-    };
-    
-    // Expandir cada punto alejándolo del centroide
-    return puntos.map(punto => {
-        const dx = punto.x - centroide.x;
-        const dy = punto.y - centroide.y;
-        const distancia = Math.sqrt(dx * dx + dy * dy);
-        
-        if (distancia === 0) return punto;
-        
-        const factor = (distancia + margen) / distancia;
-        
-        return {
-            x: centroide.x + dx * factor,
-            y: centroide.y + dy * factor
-        };
-    });
-}
-
-// Función para crear el elemento SVG de la burbuja
-function crearElementoBurbuja(nombreGrupo, puntos) {
-    const container = document.getElementById('network');
-    
-    // Crear SVG si no existe
-    let svg = container.querySelector('.burbujas-svg');
-    if (!svg) {
-        svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svg.classList.add('burbujas-svg');
-        svg.style.cssText = `
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 1;
-        `;
-        container.appendChild(svg);
-    }
-    
-    // Crear path para la burbuja
-    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    path.classList.add('burbuja-grupo');
-    path.setAttribute('data-grupo', nombreGrupo);
-    
-    // Crear path data con curvas suaves
-    const pathData = crearPathSuave(puntos);
-    path.setAttribute('d', pathData);
-    
-    // Estilo de la burbuja
-    const color = coloresGrupos[nombreGrupo] || '#4ECDC4';
-    path.style.cssText = `
-        fill: ${color};
-        fill-opacity: ${opacidadBurbujas};
-        stroke: ${color};
-        stroke-width: 2;
-        stroke-opacity: 0.6;
-        stroke-dasharray: 5,5;
-        animation: burbuja-pulso 3s ease-in-out infinite alternate;
-    `;
-    
-    svg.appendChild(path);
-    
-    // Crear etiqueta del grupo
-    crearEtiquetaGrupo(nombreGrupo, puntos, color, svg);
-    
-    // Guardar referencia
-    if (!gruposBurbujas[nombreGrupo]) {
-        gruposBurbujas[nombreGrupo] = [];
-    }
-    gruposBurbujas[nombreGrupo].push(path);
-}
-
-// Función para crear path suave con curvas
-function crearPathSuave(puntos) {
-    if (puntos.length < 3) return '';
-    
-    let path = `M ${puntos[0].x} ${puntos[0].y}`;
-    
-    for (let i = 1; i < puntos.length; i++) {
-        const punto = puntos[i];
-        const siguientePunto = puntos[(i + 1) % puntos.length];
-        
-        // Crear curva suave hacia el siguiente punto
-        const cpx = (punto.x + siguientePunto.x) / 2;
-        const cpy = (punto.y + siguientePunto.y) / 2;
-        
-        path += ` Q ${punto.x} ${punto.y} ${cpx} ${cpy}`;
-    }
-    
-    path += ' Z'; // Cerrar el path
-    
-    return path;
-}
-
-// Función para crear etiqueta del grupo
-function crearEtiquetaGrupo(nombreGrupo, puntos, color, svg) {
-    // Calcular posición central
-    const centroX = puntos.reduce((sum, p) => sum + p.x, 0) / puntos.length;
-    const centroY = puntos.reduce((sum, p) => sum + p.y, 0) / puntos.length;
-    
-    // Crear texto
-    const texto = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    texto.classList.add('etiqueta-grupo');
-    texto.setAttribute('data-grupo', nombreGrupo);
-    texto.setAttribute('x', centroX);
-    texto.setAttribute('y', centroY - 10);
-    texto.setAttribute('text-anchor', 'middle');
-    texto.textContent = formatearNombreGrupo(nombreGrupo);
-    
-    texto.style.cssText = `
-        font-family: var(--font-primary);
-        font-size: 14px;
-        font-weight: 600;
-        fill: ${color};
-        filter: drop-shadow(1px 1px 2px rgba(255,255,255,0.8));
-        pointer-events: none;
-    `;
-    
-    svg.appendChild(texto);
-}
-
-// Función para formatear nombre del grupo para mostrar
-function formatearNombreGrupo(nombreGrupo) {
-    const nombres = {
-        'universidad': '🎓 Universidad',
-        'trabajo': '💼 Trabajo',
-        'familia_cercana': '👨‍👩‍👧‍👦 Familia',
-        'amigos': '👫 Amigos',
-        'deportes': '⚽ Deportes',
-        'vecinos': '🏠 Vecinos',
-        'cadiz': '🏖️ Cádiz',
-        'madrid': '🏙️ Madrid',
-        'sevilla': '🌞 Sevilla',
-        'barcelona': '🏛️ Barcelona'
-    };
-    
-    return nombres[nombreGrupo] || nombreGrupo.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-}
-
-// Función para limpiar burbujas anteriores
-function limpiarBurbujasAnteriores() {
-    const container = document.getElementById('network');
-    const svg = container.querySelector('.burbujas-svg');
-    
-    if (svg) {
-        svg.remove();
-    }
-    
-    gruposBurbujas = {};
-}
-
-// Función para configurar eventos de actualización
-function configurarEventosBurbujas() {
-    if (!network) return;
-    
-    // Actualizar burbujas cuando se mueven los nodos
-    network.on('dragEnd', function() {
-        if (burbujasActivas) {
-            setTimeout(crearBurbujasGrupos, 100);
-        }
-    });
-    
-    // Actualizar burbujas cuando cambia la vista
-    network.on('zoom', function() {
-        if (burbujasActivas) {
-            setTimeout(crearBurbujasGrupos, 100);
-        }
-    });
-    
-    // Actualizar burbujas cuando se estabiliza la física
-    network.on('stabilizationIterationsDone', function() {
-        if (burbujasActivas) {
-            setTimeout(crearBurbujasGrupos, 200);
-        }
-    });
-    
-    console.log('✅ Eventos de burbujas configurados');
-}
-
 // Función para toggle de burbujas
 function toggleBurbujas() {
     burbujasActivas = !burbujasActivas;
     
     if (burbujasActivas) {
         crearBurbujasGrupos();
-        mostrarNotificacion('success', 'Burbujas de grupos activadas');
+        if (typeof mostrarNotificacion === 'function') {
+            mostrarNotificacion('success', 'Burbujas de grupos activadas');
+        }
     } else {
         limpiarBurbujasAnteriores();
-        mostrarNotificacion('info', 'Burbujas de grupos desactivadas');
+        if (typeof mostrarNotificacion === 'function') {
+            mostrarNotificacion('info', 'Burbujas de grupos desactivadas');
+        }
     }
     
     // Actualizar botón
@@ -517,140 +513,162 @@ function obtenerEstadisticasGrupos() {
     return estadisticas;
 }
 
-// Función para mostrar panel de control de burbujas
-function mostrarPanelControlBurbujas() {
-    const estadisticas = obtenerEstadisticasGrupos();
+// Función para configurar eventos de actualización - MOVIMIENTO EN TIEMPO REAL
+function configurarEventosBurbujas() {
+    if (!network) return;
     
-    let html = `
-        <div class="modal fade" id="modalControlBurbujas" tabindex="-1">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">
-                            <i class="icon icon-chart"></i>
-                            Control de Burbujas de Grupos
-                        </h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="row mb-4">
-                            <div class="col-md-6">
-                                <label class="form-label">Opacidad de Burbujas</label>
-                                <input type="range" class="form-range" min="0.05" max="0.5" step="0.05" 
-                                       value="${opacidadBurbujas}" onchange="cambiarOpacidadBurbujas(this.value)">
-                                <small class="text-muted">Transparencia de las burbujas de grupos</small>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Estado</label>
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" ${burbujasActivas ? 'checked' : ''} 
-                                           onchange="toggleBurbujas()">
-                                    <label class="form-check-label">Mostrar burbujas de grupos</label>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <h6><i class="icon icon-chart"></i> Estadísticas por Grupo:</h6>
-                        <div class="table-responsive">
-                            <table class="table table-sm">
-                                <thead>
-                                    <tr>
-                                        <th>Grupo</th>
-                                        <th>Nodos</th>
-                                        <th>Conexiones Internas</th>
-                                        <th>Conexiones Externas</th>
-                                        <th>Densidad Interna</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-    `;
+    // Variables para el control de movimiento en tiempo real
+    let animationFrameId = null;
+    let isMoving = false;
     
-    Object.entries(estadisticas).forEach(([grupo, stats]) => {
-        html += `
-            <tr>
-                <td>
-                    <div style="display: flex; align-items: center;">
-                        <div style="width: 15px; height: 15px; background: ${stats.color}; border-radius: 50%; margin-right: 8px;"></div>
-                        ${formatearNombreGrupo(grupo)}
-                    </div>
-                </td>
-                <td><span class="badge bg-primary">${stats.nodos}</span></td>
-                <td><span class="badge bg-success">${stats.conexionesInternas}</span></td>
-                <td><span class="badge bg-info">${stats.conexionesExternas}</span></td>
-                <td><span class="badge bg-warning">${stats.densidad}</span></td>
-            </tr>
-        `;
-    });
-    
-    html += `
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-primary" onclick="crearBurbujasGrupos()">
-                            <i class="icon icon-refresh"></i> Actualizar Burbujas
-                        </button>
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    // Limpiar modal anterior
-    const modalAnterior = document.getElementById('modalControlBurbujas');
-    if (modalAnterior) {
-        modalAnterior.remove();
+    // Función para actualizar transformación en tiempo real
+    function actualizarTransformacionEnTiempoReal() {
+        aplicarTransformacionBurbujas();
+        
+        if (isMoving) {
+            animationFrameId = requestAnimationFrame(actualizarTransformacionEnTiempoReal);
+        }
     }
     
-    // Agregar nuevo modal
-    document.body.insertAdjacentHTML('beforeend', html);
+    // Función para iniciar movimiento en tiempo real
+    function iniciarMovimientoTiempoReal() {
+        if (!isMoving) {
+            isMoving = true;
+            actualizarTransformacionEnTiempoReal();
+        }
+    }
     
-    // Mostrar modal
-    const modal = new bootstrap.Modal(document.getElementById('modalControlBurbujas'));
-    modal.show();
+    // Función para detener movimiento en tiempo real
+    function detenerMovimientoTiempoReal() {
+        isMoving = false;
+        if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
+        }
+        // Una actualización final para asegurar posición correcta
+        setTimeout(() => aplicarTransformacionBurbujas(), 50);
+    }
+    
+    // Eventos para zoom (movimiento en tiempo real)
+    network.on('zoom', function() {
+        if (!burbujasActivas) return;
+        iniciarMovimientoTiempoReal();
+    });
+    
+    // Eventos para pan/drag de vista (movimiento en tiempo real)
+    network.on('dragStart', function(params) {
+        if (!burbujasActivas) return;
+        if (params.nodes.length === 0) { // Es un drag de la vista
+            iniciarMovimientoTiempoReal();
+        }
+    });
+    
+    network.on('dragging', function(params) {
+        if (!burbujasActivas) return;
+        if (params.nodes.length === 0) { // Es un drag de la vista
+            // El movimiento ya está activo, no necesitamos hacer nada aquí
+        } else {
+            // Es un drag de nodos, recrear burbujas después
+            detenerMovimientoTiempoReal();
+        }
+    });
+    
+    network.on('dragEnd', function(params) {
+        if (!burbujasActivas) return;
+        detenerMovimientoTiempoReal();
+        
+        // Si se movieron nodos, recrear las burbujas
+        if (params.nodes.length > 0) {
+            setTimeout(() => crearBurbujasGrupos(), 100);
+        }
+    });
+    
+    // Eventos para cuando el usuario hace scroll o usa el mouse wheel
+    let zoomTimeout = null;
+    network.on('zoom', function() {
+        if (!burbujasActivas) return;
+        
+        // Limpiar timeout anterior
+        if (zoomTimeout) {
+            clearTimeout(zoomTimeout);
+        }
+        
+        // Detener movimiento después de que pare el zoom
+        zoomTimeout = setTimeout(() => {
+            detenerMovimientoTiempoReal();
+        }, 150); // 150ms sin zoom para considerar que paró
+    });
+    
+    // Actualizar burbujas cuando se estabiliza la física
+    network.on('stabilizationIterationsDone', function() {
+        if (burbujasActivas) {
+            setTimeout(() => {
+                crearBurbujasGrupos();
+            }, 200);
+        }
+    });
+    
+    // Actualizar burbujas cuando se ajusta la vista (fit)
+    network.on('afterDrawing', function() {
+        if (burbujasActivas) {
+            setTimeout(() => {
+                aplicarTransformacionBurbujas();
+            }, 100);
+        }
+    });
+    
+    // Actualizar burbujas cuando cambia el tamaño de la ventana
+    window.addEventListener('resize', function() {
+        if (burbujasActivas) {
+            detenerMovimientoTiempoReal();
+            setTimeout(() => {
+                crearBurbujasGrupos();
+            }, 300);
+        }
+    });
+    
+    // Eventos de teclado para zoom suave
+    document.addEventListener('keydown', function(e) {
+        if (!burbujasActivas) return;
+        
+        // Detectar zoom con teclado (+ y -)
+        if (e.key === '+' || e.key === '=' || e.key === '-') {
+            iniciarMovimientoTiempoReal();
+            
+            // Detener después de un momento
+            setTimeout(() => {
+                detenerMovimientoTiempoReal();
+            }, 500);
+        }
+    });
+    
+    console.log('✅ Eventos de burbujas configurados con movimiento en tiempo real');
 }
 
-// Función para añadir CSS de animaciones si no existe
-function añadirCSSBurbujas() {
-    if (document.getElementById('css-burbujas')) return;
+// Función para inicializar el sistema de burbujas
+function inicializarSistemaBurbujas() {
+    if (!network || !nodes) {
+        console.warn('⚠️ Red no inicializada, no se pueden crear burbujas');
+        return;
+    }
     
-    const style = document.createElement('style');
-    style.id = 'css-burbujas';
-    style.textContent = `
-        @keyframes burbuja-pulso {
-            0% { 
-                stroke-opacity: 0.4;
-                fill-opacity: ${opacidadBurbujas * 0.8};
-            }
-            100% { 
-                stroke-opacity: 0.8;
-                fill-opacity: ${opacidadBurbujas * 1.2};
-            }
-        }
-        
-        .burbujas-svg {
-            pointer-events: none;
-        }
-        
-        .burbuja-grupo {
-            transition: all 0.3s ease;
-        }
-        
-        .etiqueta-grupo {
-            font-weight: 600;
-            text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
-        }
-    `;
-    document.head.appendChild(style);
+    console.log('🫧 Inicializando sistema de burbujas...');
+    
+    // Crear burbujas iniciales
+    crearBurbujasGrupos();
+    
+    // Configurar eventos para actualizar burbujas
+    configurarEventosBurbujas();
+    
+    console.log('✅ Sistema de burbujas inicializado');
 }
+
+// ========== INICIALIZACIÓN ==========
 
 // Función principal de inicialización
 function inicializarSistemaBurbujasCompleto() {
     // Esperar a que la red esté lista
     if (typeof network !== 'undefined' && network && typeof nodes !== 'undefined' && nodes) {
-        añadirCSSBurbujas();
         inicializarSistemaBurbujas();
         console.log('🫧 Sistema completo de burbujas inicializado');
     } else {
@@ -659,13 +677,20 @@ function inicializarSistemaBurbujasCompleto() {
     }
 }
 
+// ========== EXPORTAR FUNCIONES ==========
+
+// Exportar funciones principales
+window.toggleBurbujas = toggleBurbujas;
+window.cambiarOpacidadBurbujas = cambiarOpacidadBurbujas;
+window.crearBurbujasGrupos = crearBurbujasGrupos;
+window.obtenerEstadisticasGrupos = obtenerEstadisticasGrupos;
+window.limpiarBurbujasAnteriores = limpiarBurbujasAnteriores;
+
 // Funciones para debugging
 window.debugBurbujas = function() {
     console.log('🔍 Estado del sistema de burbujas:');
     console.log('- Burbujas activas:', burbujasActivas);
     console.log('- Opacidad:', opacidadBurbujas);
-    console.log('- Grupos detectados:', obtenerGruposUnicos());
-    console.log('- Colores de grupos:', coloresGrupos);
     console.log('- Estadísticas:', obtenerEstadisticasGrupos());
 };
 
@@ -674,16 +699,11 @@ window.testBurbujas = function() {
     crearBurbujasGrupos();
 };
 
-// Exportar funciones
-window.toggleBurbujas = toggleBurbujas;
-window.cambiarOpacidadBurbujas = cambiarOpacidadBurbujas;
-window.mostrarPanelControlBurbujas = mostrarPanelControlBurbujas;
-window.crearBurbujasGrupos = crearBurbujasGrupos;
-window.obtenerEstadisticasGrupos = obtenerEstadisticasGrupos;
-
 // Inicializar cuando el DOM esté listo
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', inicializarSistemaBurbujasCompleto);
 } else {
     inicializarSistemaBurbujasCompleto();
 }
+
+console.log('🫧 Sistema de burbujas de grupos cargado completamente');
