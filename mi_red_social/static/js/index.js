@@ -208,6 +208,12 @@ async function inicializarRed() {
                     configurarDobleClickCrearNodo();
                     console.log('🎯 Funcionalidad de doble clic para crear nodos activada');
                 }
+                
+                // NUEVA FUNCIONALIDAD: Configurar hover para crear aristas
+                if (typeof configurarHoverCrearAristas === 'function') {
+                    configurarHoverCrearAristas();
+                    console.log('🔗 Funcionalidad de hover para crear aristas activada');
+                }
             }
         }
         
@@ -269,6 +275,7 @@ async function inicializarRed() {
                 }, 100);
             }
         });
+
         
     } catch (error) {
         console.error('❌ Error inicializando red:', error);
@@ -371,6 +378,8 @@ function ajustarTamanoRed() {
         }, 100);
     }
 }
+
+
 
 // Inicializar cuando se carga la página
 document.addEventListener('DOMContentLoaded', function() {

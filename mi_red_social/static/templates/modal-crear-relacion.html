@@ -1,0 +1,198 @@
+<!-- static/templates/modal-crear-relacion.html -->
+<div class="modal fade" id="modalCrearRelacion" tabindex="-1" aria-labelledby="tituloModalRelacion" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="tituloModalRelacion">
+                    <i class="icon icon-link"></i>
+                    Crear Nueva Relación
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formCrearRelacion">
+                    <!-- Información de los nodos a conectar -->
+                    <div class="row mb-4">
+                        <div class="col-md-5">
+                            <div class="card h-100" style="border: 2px solid #e2e8f0;">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title text-muted mb-2">Persona 1</h6>
+                                    <div id="infoNodoOrigen" class="fw-bold">
+                                        <!-- Se llenará dinámicamente -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-center justify-content-center">
+                            <div class="text-center">
+                                <i class="icon icon-link icon-xl" style="color: #10b981;"></i>
+                                <div class="small text-muted mt-1">Conectar</div>
+                            </div>
+                        </div>
+                        <div class="col-md-5">
+                            <div class="card h-100" style="border: 2px solid #e2e8f0;">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title text-muted mb-2">Persona 2</h6>
+                                    <div id="infoNodoDestino" class="fw-bold">
+                                        <!-- Se llenará dinámicamente -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Formulario de configuración de la relación -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Tipo de Relación *</label>
+                                <select class="form-control" id="tipoRelacion" name="tipo" required>
+                                    <option value="amistad">👫 Amistad</option>
+                                    <option value="mejor_amigo">💖 Mejor Amigo/a</option>
+                                    <option value="familia">👨‍👩‍👧‍👦 Familia</option>
+                                    <option value="trabajo">💼 Trabajo</option>
+                                    <option value="universidad">🎓 Universidad</option>
+                                    <option value="deportes">⚽ Deportes</option>
+                                    <option value="vecinos">🏠 Vecinos</option>
+                                    <option value="pareja">💕 Pareja</option>
+                                    <option value="conocidos">🤝 Conocidos</option>
+                                    <option value="profesional">👔 Profesional</option>
+                                    <option value="colaboracion">🤝 Colaboración</option>
+                                </select>
+                                <small class="text-muted">Tipo de relación entre estas personas</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">
+                                    Fortaleza de la Relación 
+                                    <span id="fortalezaDisplay" class="badge bg-info">5/10</span>
+                                </label>
+                                <input type="range" class="form-range" id="fortalezaRelacion" name="fortaleza" 
+                                       min="1" max="10" value="5" step="1">
+                                <div class="d-flex justify-content-between small text-muted">
+                                    <span>1 - Débil</span>
+                                    <span>5 - Normal</span>
+                                    <span>10 - Muy Fuerte</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Contexto de la Relación</label>
+                        <textarea class="form-control" id="contextoRelacion" name="contexto" rows="3" 
+                                  placeholder="Ej: Se conocieron en el trabajo hace 2 años, comparten afición por el deporte..."></textarea>
+                        <small class="text-muted">Describe cómo se conocen o se relacionan estas personas</small>
+                    </div>
+                    
+                    <!-- Preview de cómo se verá la conexión -->
+                    <div class="alert alert-info">
+                        <h6 class="mb-2">
+                            <i class="icon icon-chart"></i>
+                            Vista Previa de la Conexión:
+                        </h6>
+                        <div class="d-flex align-items-center justify-content-center">
+                            <div class="connection-preview">
+                                <span class="node-preview node-1"></span>
+                                <span class="edge-preview" id="edgePreview"></span>
+                                <span class="node-preview node-2"></span>
+                            </div>
+                        </div>
+                        <small class="text-muted d-block text-center mt-2">
+                            Esta conexión aparecerá inmediatamente en tu grafo de relaciones
+                        </small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="icon icon-close"></i>
+                    Cancelar
+                </button>
+                <button type="button" class="btn btn-success btn-custom" id="btnGuardarRelacion" onclick="guardarNuevaRelacion()">
+                    <i class="icon icon-link icon-white"></i>
+                    Crear Relación
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Estilos específicos para el modal de relación -->
+<style>
+.connection-preview {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.node-preview {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3b82f6, #1e40af);
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.edge-preview {
+    height: 3px;
+    width: 60px;
+    background: linear-gradient(90deg, #10b981, #059669);
+    border-radius: 2px;
+    position: relative;
+    animation: connection-flow 2s infinite;
+}
+
+.edge-preview::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: -5px;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-left: 8px solid #10b981;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+}
+
+@keyframes connection-flow {
+    0%, 100% {
+        opacity: 0.8;
+        transform: scaleX(1);
+    }
+    50% {
+        opacity: 1;
+        transform: scaleX(1.1);
+    }
+}
+
+.form-range::-webkit-slider-thumb {
+    background: linear-gradient(135deg, #10b981, #059669);
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.form-range::-moz-range-thumb {
+    background: linear-gradient(135deg, #10b981, #059669);
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.card {
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+#fortalezaDisplay {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    margin-left: 0.5rem;
+}
+</style>
