@@ -1042,6 +1042,375 @@ function limpiarModalGruposAnterior() {
     modalGestionGrupos = null;
 }
 
+// Funciones para persistir cambios de grupos en el backend
+// Agregar estas funciones al archivo group-management.js
+
+// Función para enviar updates de grupos al servidor
+async function enviarActualizacionesGruposAlServidor(updates) {
+    if (!updates || updates.length === 0) {
+        console.log('📝 No hay actualizaciones de grupos para enviar');
+        return { success: true, message: 'Sin cambios que guardar' };
+    }
+    
+    try {
+        console.log('📤 Enviando actualizaciones de grupos al servidor:', updates);
+        
+        const response = await fetch('/actualizar_grupos', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                updates: updates
+            })
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `HTTP ${response.status}`);
+        }
+        
+        const result = await response.json();
+        console.log('✅ Respuesta del servidor:', result);
+        
+        return result;
+        
+    } catch (error) {
+        console.error('❌ Error enviando actualizaciones de grupos:', error);
+        throw error;
+    }
+}
+
+// Función para obtener grupos actuales del servidor
+async function obtenerGruposDelServidor() {
+    try {
+        console.log('📥 Obteniendo grupos actuales del servidor...');
+        
+        const response = await fetch('/obtener_grupos_personas');
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const result = await response.json();
+        console.log('✅ Grupos obtenidos del servidor:', result);
+        
+        return result.grupos || {};
+        
+    } catch (error) {
+        console.error('❌ Error obteniendo grupos del servidor:', error);
+        throw error;
+    }
+}
+
+// Variable para rastrear cambios pendientes
+let cambiosPendientes = [];
+
+// Función para registrar un cambio de grupo
+function registrarCambioGrupo(nodeId, nuevoGrupo) {
+    // Buscar si ya existe un cambio para este nodo
+    const indiceExistente = cambiosPendientes.findIndex(cambio => cambio.id === nodeId);
+    
+    if (indiceExistente >= 0) {
+        // Actualizar cambio existente
+        cambiosPendientes[indiceExistente].grupo = nuevoGrupo;
+    } else {
+        // Agregar nuevo cambio
+        cambiosPendientes.push({
+            id: nodeId,
+            grupo: nuevoGrupo
+        });
+    }
+    
+    console.log('📝 Cambio registrado:', { id: nodeId, grupo: nuevoGrupo });
+    console.log('📋 Total cambios pendientes:', cambiosPendientes.length);
+}
+
+// Función ACTUALIZADA para asignar nodos al grupo seleccionado CON PERSISTENCIA
+async function asignarNodosAGrupo() {
+    const nodosSeleccionados = Array.from(document.querySelectorAll('.node-grupo-card input[type="checkbox"]:checked'));
+    const grupoDestino = document.getElementById('grupoDestino')?.value;
+    
+    if (nodosSeleccionados.length === 0) {
+        mostrarNotificacion('warning', 'Selecciona al menos un nodo');
+        return;
+    }
+    
+    if (!grupoDestino) {
+        mostrarNotificacion('warning', 'Selecciona un grupo destino');
+        return;
+    }
+    
+    try {
+        mostrarNotificacion('info', 'Guardando cambios...', 2000);
+        
+        // Preparar updates para el frontend
+        const updatesVisuales = nodosSeleccionados.map(checkbox => ({
+            id: parseInt(checkbox.value),
+            grupo: grupoDestino
+        }));
+        
+        // Preparar updates para el backend (misma estructura)
+        const updatesServidor = updatesVisuales.slice(); // Copia
+        
+        console.log('🔄 Actualizando', updatesVisuales.length, 'nodos...');
+        console.log('📤 Updates para servidor:', updatesServidor);
+        console.log('🎨 Updates para visual:', updatesVisuales);
+        
+        // 1. Actualizar en el frontend inmediatamente
+        if (nodes) {
+            nodes.update(updatesVisuales);
+            console.log('✅ Frontend actualizado');
+        }
+        
+        // 2. Enviar al servidor para persistencia
+        const resultado = await enviarActualizacionesGruposAlServidor(updatesServidor);
+        
+        if (resultado.success) {
+            console.log('✅ Cambios guardados en el servidor exitosamente');
+            
+            // Limpiar cambios pendientes ya que se guardaron
+            cambiosPendientes = [];
+            
+            // Limpiar selección
+            limpiarSeleccionNodos();
+            document.getElementById('grupoDestino').value = '';
+            
+            // Recargar vista
+            cargarAsignacionNodos();
+            cargarVistaGrupos();
+            cargarEstadisticasConfig();
+            
+            // Recrear burbujas
+            if (typeof crearBurbujasGrupos === 'function') {
+                setTimeout(crearBurbujasGrupos, 500);
+            }
+            
+            mostrarNotificacion('success', `¡${updatesVisuales.length} nodos asignados y guardados en "${grupoDestino}"!`);
+            
+        } else {
+            throw new Error(resultado.message || 'Error desconocido del servidor');
+        }
+        
+    } catch (error) {
+        console.error('❌ Error asignando nodos:', error);
+        
+        // Revertir cambios visuales si falló el guardado
+        if (nodes) {
+            try {
+                // Recargar datos del servidor para revertir
+                const response = await fetch('/api/grafo');
+                const data = await response.json();
+                
+                if (data.nodes) {
+                    nodes.clear();
+                    nodes.add(data.nodes);
+                    console.log('🔄 Datos revertidos desde servidor');
+                }
+            } catch (revertError) {
+                console.error('❌ Error revirtiendo datos:', revertError);
+            }
+        }
+        
+        mostrarNotificacion('error', `Error guardando grupos: ${error.message}`);
+    }
+}
+
+// Función ACTUALIZADA para aplicar cambios y cerrar modal CON VERIFICACIÓN
+async function aplicarCambiosGrupos() {
+    console.log('💾 Aplicando cambios finales de grupos...');
+    
+    try {
+        // Verificar si hay cambios pendientes que no se hayan guardado
+        if (cambiosPendientes.length > 0) {
+            console.log('📋 Guardando cambios pendientes:', cambiosPendientes);
+            
+            const resultado = await enviarActualizacionesGruposAlServidor(cambiosPendientes);
+            
+            if (resultado.success) {
+                console.log('✅ Cambios pendientes guardados');
+                cambiosPendientes = [];
+            } else {
+                throw new Error('Error guardando cambios pendientes');
+            }
+        }
+        
+        // Recrear burbujas con la configuración actual
+        if (typeof crearBurbujasGrupos === 'function') {
+            setTimeout(() => {
+                crearBurbujasGrupos();
+                console.log('🫧 Burbujas actualizadas');
+            }, 300);
+        }
+        
+        // Verificar que los datos estén sincronizados
+        setTimeout(async () => {
+            try {
+                // Recargar datos desde el servidor para asegurar sincronización
+                const response = await fetch('/api/grafo');
+                const data = await response.json();
+                
+                if (data.nodes && nodes) {
+                    // Actualizar nodos con datos del servidor
+                    nodes.clear();
+                    nodes.add(data.nodes);
+                    console.log('🔄 Datos sincronizados con servidor');
+                    
+                    // Recrear burbujas con datos sincronizados
+                    if (typeof crearBurbujasGrupos === 'function') {
+                        setTimeout(crearBurbujasGrupos, 200);
+                    }
+                }
+            } catch (syncError) {
+                console.warn('⚠️ Error sincronizando datos:', syncError);
+            }
+        }, 800);
+        
+        // Cerrar modal
+        if (modalGestionGrupos) {
+            modalGestionGrupos.hide();
+        }
+        
+        mostrarNotificacion('success', '¡Cambios de grupos aplicados y guardados correctamente!');
+        console.log('✅ Cambios aplicados exitosamente');
+        
+    } catch (error) {
+        console.error('❌ Error aplicando cambios:', error);
+        mostrarNotificacion('error', `Error aplicando cambios: ${error.message}`);
+    }
+}
+
+// Función para sincronizar grupos al cargar la página
+async function sincronizarGruposAlCargar() {
+    console.log('🔄 Sincronizando grupos al cargar...');
+    
+    try {
+        // Obtener grupos actuales del servidor
+        const gruposServidor = await obtenerGruposDelServidor();
+        
+        if (!nodes) {
+            console.warn('⚠️ Nodes no disponible para sincronización');
+            return;
+        }
+        
+        // Comparar con grupos en memoria
+        const nodosActuales = nodes.get();
+        const actualizacionesNecesarias = [];
+        
+        nodosActuales.forEach(nodo => {
+            const grupoServidor = gruposServidor[nodo.id]?.grupo;
+            const grupoActual = nodo.grupo;
+            
+            if (grupoServidor !== grupoActual) {
+                console.log(`🔄 Sincronizando nodo ${nodo.id}: "${grupoActual}" → "${grupoServidor}"`);
+                
+                actualizacionesNecesarias.push({
+                    id: nodo.id,
+                    grupo: grupoServidor
+                });
+            }
+        });
+        
+        if (actualizacionesNecesarias.length > 0) {
+            nodes.update(actualizacionesNecesarias);
+            console.log(`✅ ${actualizacionesNecesarias.length} grupos sincronizados`);
+            
+            // Crear burbujas después de sincronizar
+            if (typeof crearBurbujasGrupos === 'function') {
+                setTimeout(crearBurbujasGrupos, 500);
+            }
+        } else {
+            console.log('✅ Grupos ya sincronizados');
+        }
+        
+    } catch (error) {
+        console.error('❌ Error sincronizando grupos:', error);
+    }
+}
+
+// Función para verificar estado de sincronización
+window.verificarSincronizacionGrupos = async function() {
+    console.log('🔍 Verificando sincronización de grupos...');
+    
+    try {
+        const gruposServidor = await obtenerGruposDelServidor();
+        
+        if (!nodes) {
+            console.log('❌ Nodes no disponible');
+            return;
+        }
+        
+        const nodosActuales = nodes.get();
+        
+        console.log('📊 COMPARACIÓN DE GRUPOS:');
+        console.log('========================');
+        
+        let diferencias = 0;
+        
+        nodosActuales.forEach(nodo => {
+            const grupoMemoria = nodo.grupo || 'sin_grupo';
+            const grupoServidor = gruposServidor[nodo.id]?.grupo || 'sin_grupo';
+            const nombre = nodo.label?.replace(/<[^>]*>/g, '') || `Nodo ${nodo.id}`;
+            
+            if (grupoMemoria !== grupoServidor) {
+                console.log(`❌ ${nombre}: Memoria="${grupoMemoria}" vs Servidor="${grupoServidor}"`);
+                diferencias++;
+            } else {
+                console.log(`✅ ${nombre}: "${grupoMemoria}" (sincronizado)`);
+            }
+        });
+        
+        console.log('========================');
+        console.log(`📈 Resultado: ${diferencias === 0 ? '✅ Totalmente sincronizado' : `❌ ${diferencias} diferencias encontradas`}`);
+        
+        if (diferencias > 0) {
+            console.log('💡 Ejecuta sincronizarGruposAlCargar() para corregir');
+        }
+        
+        return diferencias === 0;
+        
+    } catch (error) {
+        console.error('❌ Error verificando sincronización:', error);
+        return false;
+    }
+};
+
+// Función de debugging para el estado de grupos
+window.debugEstadoGrupos = function() {
+    console.log('🔍 DEBUG ESTADO DE GRUPOS:');
+    console.log('===========================');
+    
+    console.log('📋 Cambios pendientes:', cambiosPendientes.length);
+    if (cambiosPendientes.length > 0) {
+        console.table(cambiosPendientes);
+    }
+    
+    console.log('👥 Nodos disponibles:', typeof nodes !== 'undefined' ? nodes?.length || 0 : 'No disponible');
+    
+    if (nodes) {
+        const distribucion = {};
+        nodes.forEach(nodo => {
+            const grupo = nodo.grupo || 'sin_grupo';
+            distribucion[grupo] = (distribucion[grupo] || 0) + 1;
+        });
+        
+        console.log('📊 Distribución actual:');
+        console.table(distribucion);
+    }
+    
+    console.log('===========================');
+    console.log('💡 Funciones disponibles:');
+    console.log('- verificarSincronizacionGrupos() - Verificar sincronización');
+    console.log('- sincronizarGruposAlCargar() - Forzar sincronización');
+};
+
+// Exportar funciones actualizadas
+window.asignarNodosAGrupo = asignarNodosAGrupo;
+window.aplicarCambiosGrupos = aplicarCambiosGrupos;
+window.sincronizarGruposAlCargar = sincronizarGruposAlCargar;
+
+console.log('💾 Sistema de persistencia de grupos cargado');
+
 // Función para crear HTML del modal
 function crearHTMLModalGrupos() {
     return `

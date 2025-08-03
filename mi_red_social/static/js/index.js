@@ -401,7 +401,243 @@ function ajustarTamanoRed() {
     }
 }
 
+// Agregar esta función mejorada para recargar datos al archivo index.js
+// Reemplazar la función cargarDatos existente con esta versión mejorada
 
+async function cargarDatos() {
+    try {
+        actualizarEstado('Cargando datos...');
+        
+        const response = await fetch('/api/grafo');
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        
+        console.log('📊 Datos recibidos:', data);
+        
+        // NUEVO: Verificar que los nodos tengan grupos actualizados
+        if (data.nodes) {
+            console.log('📋 Verificando grupos en los nodos recibidos...');
+            const nodosConGrupos = data.nodes.filter(nodo => nodo.grupo && nodo.grupo !== 'sin_grupo');
+            console.log(`🏷️ ${nodosConGrupos.length} de ${data.nodes.length} nodos tienen grupos asignados`);
+            
+            if (nodosConGrupos.length > 0) {
+                console.log('📊 Distribución de grupos recibida:');
+                const distribucion = {};
+                nodosConGrupos.forEach(nodo => {
+                    distribucion[nodo.grupo] = (distribucion[nodo.grupo] || 0) + 1;
+                });
+                console.table(distribucion);
+            }
+        }
+        
+        actualizarEstado(`✅ ${data.nodes.length} contactos, ${data.edges.length} conexiones`);
+        
+        // Actualizar estadísticas
+        document.getElementById('total-personas').textContent = data.nodes.length;
+        document.getElementById('total-conexiones').textContent = data.edges.length;
+        
+        // Calcular densidad
+        const totalNodos = data.nodes.length;
+        const maxPosiblesConexiones = totalNodos > 1 ? (totalNodos * (totalNodos - 1)) / 2 : 0;
+        const densidad = maxPosiblesConexiones > 0 ? ((data.edges.length / maxPosiblesConexiones) * 100).toFixed(1) : 0;
+        document.getElementById('densidad-red').textContent = densidad + '%';
+        
+        // Calcular persona más conectada
+        let personaMasConectada = 'Ninguna';
+        if (data.nodes.length > 0) {
+            const conteoConexiones = {};
+            
+            // Inicializar conteo
+            data.nodes.forEach(node => {
+                conteoConexiones[node.id] = 0;
+            });
+            
+            // Contar conexiones
+            data.edges.forEach(edge => {
+                if (conteoConexiones.hasOwnProperty(edge.from)) {
+                    conteoConexiones[edge.from]++;
+                }
+                if (conteoConexiones.hasOwnProperty(edge.to)) {
+                    conteoConexiones[edge.to]++;
+                }
+            });
+            
+            // Encontrar el más conectado
+            let maxConexiones = 0;
+            let nodeIdMasConectado = null;
+            
+            for (const [nodeId, conexiones] of Object.entries(conteoConexiones)) {
+                if (conexiones > maxConexiones) {
+                    maxConexiones = conexiones;
+                    nodeIdMasConectado = nodeId;
+                }
+            }
+            
+            if (nodeIdMasConectado) {
+                const nodeMasConectado = data.nodes.find(node => node.id == nodeIdMasConectado);
+                if (nodeMasConectado && nodeMasConectado.label) {
+                    personaMasConectada = nodeMasConectado.label.replace(/<[^>]*>/g, '').trim();
+                }
+            }
+        }
+        
+        document.getElementById('mas-conectado').textContent = personaMasConectada;
+        
+        return data;
+    } catch (error) {
+        console.error('❌ Error cargando datos:', error);
+        actualizarEstado(`❌ Error: ${error.message}`);
+        return { nodes: [], edges: [] };
+    }
+}
+
+// Función mejorada para recargar SOLO los datos sin recrear toda la red - CON SINCRONIZACIÓN
+async function recargarSoloDatos() {
+    try {
+        console.log('🔄 Recargando solo datos con sincronización...');
+        
+        const response = await fetch('/api/grafo');
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log('📊 Nuevos datos recibidos:', data);
+        
+        if (nodes && edges) {
+            // IMPORTANTE: Actualizar datasets existentes con datos del servidor
+            nodes.clear();
+            nodes.add(data.nodes);
+            
+            edges.clear();
+            edges.add(data.edges);
+            
+            console.log('✅ Datasets actualizados con datos del servidor');
+            
+            // Verificar grupos después de la actualización
+            const nodosConGrupos = data.nodes.filter(nodo => nodo.grupo && nodo.grupo !== 'sin_grupo');
+            console.log(`🏷️ ${nodosConGrupos.length} nodos con grupos después de recargar`);
+            
+            // Actualizar estadísticas
+            document.getElementById('total-personas').textContent = data.nodes.length;
+            document.getElementById('total-conexiones').textContent = data.edges.length;
+            
+            // Calcular densidad
+            const totalNodos = data.nodes.length;
+            const maxPosiblesConexiones = totalNodos > 1 ? (totalNodos * (totalNodos - 1)) / 2 : 0;
+            const densidad = maxPosiblesConexiones > 0 ? ((data.edges.length / maxPosiblesConexiones) * 100).toFixed(1) : 0;
+            document.getElementById('densidad-red').textContent = densidad + '%';
+            
+            // Calcular persona más conectada
+            let personaMasConectada = 'Ninguna';
+            if (data.nodes.length > 0) {
+                const conteoConexiones = {};
+                
+                // Inicializar conteo
+                data.nodes.forEach(node => {
+                    conteoConexiones[node.id] = 0;
+                });
+                
+                // Contar conexiones
+                data.edges.forEach(edge => {
+                    if (conteoConexiones.hasOwnProperty(edge.from)) {
+                        conteoConexiones[edge.from]++;
+                    }
+                    if (conteoConexiones.hasOwnProperty(edge.to)) {
+                        conteoConexiones[edge.to]++;
+                    }
+                });
+                
+                // Encontrar el más conectado
+                let maxConexiones = 0;
+                let nodeIdMasConectado = null;
+                
+                for (const [nodeId, conexiones] of Object.entries(conteoConexiones)) {
+                    if (conexiones > maxConexiones) {
+                        maxConexiones = conexiones;
+                        nodeIdMasConectado = nodeId;
+                    }
+                }
+                
+                if (nodeIdMasConectado) {
+                    const nodeMasConectado = data.nodes.find(node => node.id == nodeIdMasConectado);
+                    if (nodeMasConectado && nodeMasConectado.label) {
+                        personaMasConectada = nodeMasConectado.label.replace(/<[^>]*>/g, '').trim();
+                    }
+                }
+            }
+            
+            document.getElementById('mas-conectado').textContent = personaMasConectada;
+            
+            console.log('✅ Datos actualizados correctamente con grupos sincronizados');
+        }
+        
+        return data;
+        
+    } catch (error) {
+        console.error('❌ Error recargando datos:', error);
+        throw error;
+    }
+}
+
+// Modificar la función marcarRedLista para incluir sincronización de grupos
+function marcarRedLista() {
+    if (!redLista) {
+        redLista = true;
+        network.fit();
+        actualizarEstado('✅ Red funcionando');
+        setTimeout(() => actualizarEstado('Sistema listo'), 2000);
+        
+        // NUEVA FUNCIONALIDAD: Configurar doble clic para crear nodos
+        if (typeof configurarDobleClickCrearNodo === 'function') {
+            configurarDobleClickCrearNodo();
+            console.log('🎯 Funcionalidad de doble clic para crear nodos activada');
+        }
+        
+        // NUEVA FUNCIONALIDAD: Configurar hover para crear aristas
+        if (typeof configurarHoverCrearAristas === 'function') {
+            configurarHoverCrearAristas();
+            console.log('🔗 Funcionalidad de hover para crear aristas activada');
+        }
+        
+        // NUEVA FUNCIONALIDAD: Sincronizar grupos después de cargar la red
+        setTimeout(async () => {
+            if (typeof sincronizarGruposAlCargar === 'function') {
+                console.log('🔄 Iniciando sincronización de grupos...');
+                try {
+                    await sincronizarGruposAlCargar();
+                    console.log('✅ Grupos sincronizados');
+                } catch (error) {
+                    console.warn('⚠️ Error sincronizando grupos:', error);
+                }
+            }
+            
+            // NUEVA FUNCIONALIDAD: Activar sistema de burbujas automáticamente
+            if (typeof crearBurbujasGrupos === 'function') {
+                console.log('🫧 Activando sistema de burbujas automáticamente...');
+                
+                // Verificar si hay nodos con grupos asignados
+                if (nodes && nodes.length > 0) {
+                    const nodosConGrupos = nodes.get().filter(nodo => nodo.grupo && nodo.grupo !== 'sin_grupo');
+                    
+                    if (nodosConGrupos.length > 0) {
+                        // Activar burbujas si hay grupos
+                        if (typeof burbujasActivas !== 'undefined') {
+                            window.burbujasActivas = true;
+                        }
+                        crearBurbujasGrupos();
+                        console.log(`✅ Burbujas activadas automáticamente para ${nodosConGrupos.length} nodos con grupos`);
+                    } else {
+                        console.log('📝 No hay grupos asignados, las burbujas se activarán cuando se asignen grupos');
+                    }
+                }
+            }
+        }, 1500); // Esperar 1.5 segundos para que todo esté estabilizado
+    }
+}
 
 // Inicializar cuando se carga la página
 document.addEventListener('DOMContentLoaded', function() {

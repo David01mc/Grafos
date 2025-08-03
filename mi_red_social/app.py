@@ -114,13 +114,15 @@ def admin():
     
     return render_template('admin.html', personas=personas, relaciones=relaciones)
 
+# Reemplazar la función api_grafo existente en app.py con esta versión corregida
+
 @app.route('/api/grafo')
 def api_grafo():
-    """API que devuelve los datos del grafo en formato JSON"""
+    """API que devuelve los datos del grafo en formato JSON - VERSIÓN CORREGIDA CON GRUPOS"""
     try:
         conn = get_db_connection()
         
-        # Obtener personas
+        # Obtener personas CON GRUPOS
         personas = conn.execute('SELECT * FROM personas').fetchall()
         
         # Obtener relaciones
@@ -133,21 +135,24 @@ def api_grafo():
         
         conn.close()
         
-        # Formatear datos para vis.js (sin emojis)
+        # Formatear datos para vis.js - INCLUYENDO GRUPOS
         nodes = []
         for persona in personas:
             size = 50 if 'Usuario Principal' in persona['nombre'] else 30
             # Solo usar el nombre, sin iconos
             label = persona['nombre']
             
-            nodes.append({
+            # IMPORTANTE: Incluir el grupo en los datos del nodo
+            node_data = {
                 'id': persona['id'],
                 'label': label,
                 'color': persona['color'],
                 'size': size,
-                'title': f"<b>{persona['nombre']}</b><br>{persona['descripcion'] or 'Sin descripción'}<br>Grupo: {persona['grupo']}",
-                'grupo': persona['grupo']
-            })
+                'title': f"<b>{persona['nombre']}</b><br>{persona['descripcion'] or 'Sin descripción'}<br>Grupo: {persona['grupo'] or 'Sin grupo'}",
+                'grupo': persona['grupo']  # ESTO ES CRUCIAL - incluir el grupo
+            }
+            
+            nodes.append(node_data)
         
         edges = []
         for relacion in relaciones:
@@ -162,7 +167,15 @@ def api_grafo():
             })
         
         resultado = {'nodes': nodes, 'edges': edges}
+        
+        # Debug: mostrar distribución de grupos
+        grupos_debug = {}
+        for node in nodes:
+            grupo = node.get('grupo') or 'sin_grupo'
+            grupos_debug[grupo] = grupos_debug.get(grupo, 0) + 1
+        
         print(f"🔍 API devolviendo: {len(nodes)} nodos, {len(edges)} conexiones")
+        print(f"📊 Distribución de grupos: {grupos_debug}")
         
         return jsonify(resultado)
         
@@ -242,6 +255,89 @@ def eliminar_persona(persona_id):
     
     conn.close()
     return redirect(url_for('admin'))
+
+# Agregar este endpoint al archivo app.py después de los otros endpoints
+
+@app.route('/actualizar_grupos', methods=['POST'])
+def actualizar_grupos():
+    """Endpoint para actualizar los grupos de múltiples personas"""
+    try:
+        # Obtener datos JSON del request
+        data = request.get_json()
+        
+        if not data or 'updates' not in data:
+            return jsonify({'error': 'Datos de actualización no válidos'}), 400
+        
+        updates = data['updates']
+        
+        if not isinstance(updates, list):
+            return jsonify({'error': 'Updates debe ser una lista'}), 400
+        
+        conn = get_db_connection()
+        
+        # Procesar cada actualización
+        actualizados = 0
+        for update in updates:
+            if 'id' not in update:
+                continue
+                
+            persona_id = update['id']
+            grupo = update.get('grupo', None)
+            
+            # Actualizar la persona en la base de datos
+            conn.execute('''
+                UPDATE personas 
+                SET grupo = ? 
+                WHERE id = ?
+            ''', (grupo, persona_id))
+            
+            actualizados += 1
+        
+        conn.commit()
+        conn.close()
+        
+        print(f"✅ Actualizados {actualizados} grupos en la base de datos")
+        
+        return jsonify({
+            'success': True,
+            'message': f'{actualizados} grupos actualizados exitosamente',
+            'actualizados': actualizados
+        })
+        
+    except Exception as e:
+        print(f"❌ Error actualizando grupos: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/obtener_grupos_personas', methods=['GET'])
+def obtener_grupos_personas():
+    """Endpoint para obtener los grupos actuales de todas las personas"""
+    try:
+        conn = get_db_connection()
+        
+        personas = conn.execute('''
+            SELECT id, nombre, grupo 
+            FROM personas 
+            ORDER BY nombre
+        ''').fetchall()
+        
+        conn.close()
+        
+        # Convertir a diccionario para facilitar el uso
+        grupos_actuales = {}
+        for persona in personas:
+            grupos_actuales[persona['id']] = {
+                'nombre': persona['nombre'],
+                'grupo': persona['grupo']
+            }
+        
+        return jsonify({
+            'success': True,
+            'grupos': grupos_actuales
+        })
+        
+    except Exception as e:
+        print(f"❌ Error obteniendo grupos: {e}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/eliminar_relacion/<int:relacion_id>')
 def eliminar_relacion(relacion_id):

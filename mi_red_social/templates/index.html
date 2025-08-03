@@ -1,423 +1,4 @@
-<!-- Incluir la corrección específica para aria-hidden -->
-<script src="{{ url_for('static', filename='js/aria-hidden-fix.js') }}"></script>
-
-<!-- Script para debugging de burbujas -->
-<script>
-// Script para debuggear y activar las burbujas
-
-// Función para verificar el estado completo del sistema de burbujas
-window.verificarSistemaBurbujas = function() {
-    console.log('🔍 DIAGNÓSTICO COMPLETO DEL SISTEMA DE BURBUJAS:');
-    console.log('='.repeat(50));
-    
-    // 1. Verificar dependencias básicas
-    console.log('📋 DEPENDENCIAS:');
-    console.log('- Network:', typeof network !== 'undefined' ? '✅' : '❌');
-    console.log('- Nodes:', typeof nodes !== 'undefined' ? '✅' : '❌');
-    console.log('- Edges:', typeof edges !== 'undefined' ? '✅' : '❌');
-    
-    // 2. Verificar funciones del sistema de burbujas
-    console.log('\n🫧 FUNCIONES DE BURBUJAS:');
-    console.log('- crearBurbujasGrupos:', typeof crearBurbujasGrupos === 'function' ? '✅' : '❌');
-    console.log('- toggleBurbujas:', typeof toggleBurbujas === 'function' ? '✅' : '❌');
-    console.log('- obtenerEstadisticasGrupos:', typeof obtenerEstadisticasGrupos === 'function' ? '✅' : '❌');
-    console.log('- limpiarBurbujasAnteriores:', typeof limpiarBurbujasAnteriores === 'function' ? '✅' : '❌');
-    
-    // 3. Verificar estado de las burbujas
-    console.log('\n🎛️ ESTADO ACTUAL:');
-    console.log('- burbujasActivas:', typeof burbujasActivas !== 'undefined' ? burbujasActivas : 'No definido');
-    console.log('- opacidadBurbujas:', typeof opacidadBurbujas !== 'undefined' ? opacidadBurbujas : 'No definido');
-    
-    // 4. Verificar nodos y grupos
-    if (typeof nodes !== 'undefined' && nodes) {
-        const todosLosNodos = nodes.get();
-        console.log('\n👥 NODOS Y GRUPOS:');
-        console.log('- Total nodos:', todosLosNodos.length);
-        
-        const gruposEncontrados = {};
-        todosLosNodos.forEach(nodo => {
-            const grupo = nodo.grupo || 'sin_grupo';
-            gruposEncontrados[grupo] = (gruposEncontrados[grupo] || 0) + 1;
-        });
-        
-        console.log('- Distribución por grupos:');
-        Object.entries(gruposEncontrados).forEach(([grupo, cantidad]) => {
-            console.log(`  ${grupo}: ${cantidad} nodos`);
-        });
-    }
-    
-    // 5. Verificar elementos SVG de burbujas
-    console.log('\n🖼️ ELEMENTOS VISUALES:');
-    const svgBurbujas = document.querySelector('.burbujas-svg');
-    console.log('- SVG de burbujas:', svgBurbujas ? '✅ Presente' : '❌ No encontrado');
-    
-    if (svgBurbujas) {
-        const burbujas = svgBurbujas.querySelectorAll('.burbuja-grupo');
-        const etiquetas = svgBurbujas.querySelectorAll('.etiqueta-grupo');
-        console.log('- Burbujas encontradas:', burbujas.length);
-        console.log('- Etiquetas encontradas:', etiquetas.length);
-        
-        burbujas.forEach((burbuja, index) => {
-            const grupo = burbuja.getAttribute('data-grupo');
-            console.log(`  Burbuja ${index + 1}: ${grupo || 'sin nombre'}`);
-        });
-    }
-    
-    console.log('='.repeat(50));
-    console.log('💡 ACCIONES SUGERIDAS:');
-    console.log('- activarBurbujasManualmente() - Forzar activación');
-    console.log('- crearGruposDemo() - Crear grupos de prueba');
-    console.log('- repararSistemaBurbujas() - Intentar reparación automática');
-};
-
-// Función para activar burbujas manualmente
-window.activarBurbujasManualmente = function() {
-    console.log('🔄 Activando burbujas manualmente...');
-    
-    if (typeof nodes === 'undefined' || !nodes) {
-        console.error('❌ Nodes no disponible');
-        return;
-    }
-    
-    if (typeof network === 'undefined' || !network) {
-        console.error('❌ Network no disponible');
-        return;
-    }
-    
-    // Activar burbujas
-    if (typeof burbujasActivas !== 'undefined') {
-        window.burbujasActivas = true;
-    }
-    
-    // Crear burbujas
-    if (typeof crearBurbujasGrupos === 'function') {
-        try {
-            crearBurbujasGrupos();
-            console.log('✅ Burbujas creadas exitosamente');
-        } catch (error) {
-            console.error('❌ Error creando burbujas:', error);
-        }
-    } else {
-        console.error('❌ Función crearBurbujasGrupos no disponible');
-    }
-    
-    // Verificar resultado
-    setTimeout(() => {
-        const svgBurbujas = document.querySelector('.burbujas-svg');
-        if (svgBurbujas) {
-            const burbujas = svgBurbujas.querySelectorAll('.burbuja-grupo');
-            console.log(`✅ ${burbujas.length} burbujas creadas`);
-        } else {
-            console.warn('⚠️ No se encontraron burbujas después de la activación');
-        }
-    }, 500);
-};
-
-// Función para reparar el sistema de burbujas
-window.repararSistemaBurbujas = function() {
-    console.log('🔧 Reparando sistema de burbujas...');
-    
-    // 1. Limpiar burbujas existentes
-    if (typeof limpiarBurbujasAnteriores === 'function') {
-        limpiarBurbujasAnteriores();
-        console.log('🧹 Burbujas anteriores limpiadas');
-    }
-    
-    // 2. Verificar que tenemos grupos
-    if (typeof nodes !== 'undefined' && nodes) {
-        const todosLosNodos = nodes.get();
-        const tienenGrupos = todosLosNodos.some(nodo => nodo.grupo && nodo.grupo !== 'sin_grupo');
-        
-        if (!tienenGrupos) {
-            console.log('📋 No hay grupos asignados, creando grupos demo...');
-            if (typeof crearGruposDemo === 'function') {
-                crearGruposDemo();
-            }
-        }
-    }
-    
-    // 3. Esperar un momento y activar burbujas
-    setTimeout(() => {
-        activarBurbujasManualmente();
-    }, 1000);
-    
-    console.log('🔧 Reparación completada');
-};
-
-// Función para diagnóstico rápido
-window.diagnosticoBurbujas = function() {
-    console.log('⚡ DIAGNÓSTICO RÁPIDO:');
-    
-    const problemas = [];
-    
-    if (typeof network === 'undefined') problemas.push('❌ Network no definido');
-    if (typeof nodes === 'undefined') problemas.push('❌ Nodes no definido');
-    if (typeof crearBurbujasGrupos !== 'function') problemas.push('❌ crearBurbujasGrupos no es función');
-    
-    const container = document.getElementById('network');
-    if (!container) problemas.push('❌ Contenedor #network no encontrado');
-    
-    const svg = document.querySelector('.burbujas-svg');
-    if (!svg) problemas.push('⚠️ SVG de burbujas no existe');
-    
-    if (problemas.length === 0) {
-        console.log('✅ No se encontraron problemas obvios');
-        console.log('💡 Intenta: activarBurbujasManualmente()');
-    } else {
-        console.log('🚨 Problemas encontrados:');
-        problemas.forEach(problema => console.log(problema));
-    }
-};
-
-console.log('🛠️ Herramientas de debugging de burbujas cargadas');
-console.log('💡 Ejecuta: verificarSistemaBurbujas() para diagnosticar');
-
-// Script para arreglar los grupos y activar burbujas
-window.reorganizarGruposParaBurbujas = function() {
-    console.log('🔄 Reorganizando nodos en grupos con múltiples miembros...');
-    
-    if (!nodes) {
-        console.error('❌ Nodes no disponible');
-        return;
-    }
-    
-    const todosLosNodos = nodes.get();
-    console.log('📊 Total nodos disponibles:', todosLosNodos.length);
-    
-    // Crear grupos con múltiples nodos para que aparezcan las burbujas
-    const updates = [];
-    
-    todosLosNodos.forEach((nodo, index) => {
-        let nuevoGrupo = null;
-        
-        // Distribuir nodos en 4 grupos principales con múltiples miembros cada uno
-        if (index % 4 === 0) {
-            nuevoGrupo = 'universidad';
-        } else if (index % 4 === 1) {
-            nuevoGrupo = 'trabajo';
-        } else if (index % 4 === 2) {
-            nuevoGrupo = 'familia_cercana';
-        } else {
-            nuevoGrupo = 'amigos';
-        }
-        
-        updates.push({
-            id: nodo.id,
-            grupo: nuevoGrupo
-        });
-        
-        console.log(`📝 Nodo ${nodo.id} (${nodo.label?.replace(/<[^>]*>/g, '') || 'Sin nombre'}) → Grupo: ${nuevoGrupo}`);
-    });
-    
-    // Aplicar los cambios
-    nodes.update(updates);
-    console.log('✅ Grupos reorganizados exitosamente');
-    
-    // Verificar la nueva distribución
-    const nuevaDistribucion = {};
-    updates.forEach(update => {
-        nuevaDistribucion[update.grupo] = (nuevaDistribucion[update.grupo] || 0) + 1;
-    });
-    
-    console.log('📈 Nueva distribución de grupos:');
-    Object.entries(nuevaDistribucion).forEach(([grupo, cantidad]) => {
-        console.log(`  ${grupo}: ${cantidad} nodos`);
-    });
-    
-    // Ahora crear las burbujas
-    setTimeout(() => {
-        if (typeof crearBurbujasGrupos === 'function') {
-            crearBurbujasGrupos();
-            console.log('🫧 Burbujas creadas con la nueva distribución');
-            
-            // Verificar que se crearon
-            setTimeout(() => {
-                const svgBurbujas = document.querySelector('.burbujas-svg');
-                if (svgBurbujas) {
-                    const burbujas = svgBurbujas.querySelectorAll('.burbuja-grupo');
-                    console.log(`🎉 ¡${burbujas.length} burbujas creadas exitosamente!`);
-                    
-                    if (burbujas.length > 0) {
-                        mostrarNotificacion('success', `¡${burbujas.length} burbujas de grupos creadas! Ahora puedes ver los grupos de personas.`);
-                    }
-                } else {
-                    console.warn('⚠️ SVG no encontrado después de crear burbujas');
-                }
-            }, 500);
-        }
-    }, 500);
-    
-    return nuevaDistribucion;
-};
-
-// Función alternativa para crear burbujas incluso con un solo nodo
-window.forzarBurbujasParaTodos = function() {
-    console.log('💪 Forzando creación de burbujas para todos los grupos...');
-    
-    if (!nodes || !network) {
-        console.error('❌ Dependencias no disponibles');
-        return;
-    }
-    
-    const container = document.getElementById('network');
-    if (!container) {
-        console.error('❌ Contenedor network no encontrado');
-        return;
-    }
-    
-    // Limpiar burbujas existentes
-    if (typeof limpiarBurbujasAnteriores === 'function') {
-        limpiarBurbujasAnteriores();
-    }
-    
-    // Agrupar nodos
-    const nodosPorGrupo = {};
-    const todosLosNodos = nodes.get();
-    
-    todosLosNodos.forEach(nodo => {
-        const grupo = nodo.grupo || 'sin_grupo';
-        if (grupo !== 'sin_grupo') {
-            if (!nodosPorGrupo[grupo]) {
-                nodosPorGrupo[grupo] = [];
-            }
-            nodosPorGrupo[grupo].push(nodo);
-        }
-    });
-    
-    console.log('📋 Grupos encontrados:', Object.keys(nodosPorGrupo));
-    
-    // Crear SVG
-    let svg = container.querySelector('.burbujas-svg');
-    if (!svg) {
-        svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svg.classList.add('burbujas-svg');
-        svg.style.cssText = `
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 1;
-            overflow: visible;
-        `;
-        container.appendChild(svg);
-    }
-    
-    // Crear burbujas para TODOS los grupos (incluso con 1 nodo)
-    let burbujasCreadas = 0;
-    Object.entries(nodosPorGrupo).forEach(([grupo, nodosGrupo], index) => {
-        if (nodosGrupo.length > 0) { // Cambié de > 1 a > 0
-            // Obtener posiciones de los nodos
-            const posicionesNodos = network.getPositions();
-            let posiciones = [];
-            
-            nodosGrupo.forEach(nodo => {
-                const pos = posicionesNodos[nodo.id];
-                if (pos) {
-                    const posDOM = network.canvasToDOM(pos);
-                    posiciones.push(posDOM);
-                }
-            });
-            
-            if (posiciones.length === 1) {
-                // Para un solo nodo, crear un círculo alrededor
-                const pos = posiciones[0];
-                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-                circle.setAttribute('cx', pos.x);
-                circle.setAttribute('cy', pos.y);
-                circle.setAttribute('r', 40);
-                circle.setAttribute('fill', `hsl(${index * 50}, 70%, 80%)`);
-                circle.setAttribute('fill-opacity', '0.2');
-                circle.setAttribute('stroke', `hsl(${index * 50}, 70%, 50%)`);
-                circle.setAttribute('stroke-width', '2');
-                circle.setAttribute('stroke-dasharray', '5,5');
-                circle.classList.add('burbuja-grupo');
-                circle.setAttribute('data-grupo', grupo);
-                
-                svg.appendChild(circle);
-                
-                // Etiqueta
-                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                text.setAttribute('x', pos.x);
-                text.setAttribute('y', pos.y - 50);
-                text.setAttribute('text-anchor', 'middle');
-                text.style.cssText = `
-                    font-family: var(--font-primary);
-                    font-size: 12px;
-                    font-weight: 600;
-                    fill: hsl(${index * 50}, 70%, 30%);
-                `;
-                text.textContent = grupo.replace(/_/g, ' ').toUpperCase();
-                text.classList.add('etiqueta-grupo');
-                
-                svg.appendChild(text);
-                burbujasCreadas++;
-                
-            } else if (posiciones.length > 1) {
-                // Para múltiples nodos, usar algoritmo normal
-                const minX = Math.min(...posiciones.map(p => p.x)) - 30;
-                const maxX = Math.max(...posiciones.map(p => p.x)) + 30;
-                const minY = Math.min(...posiciones.map(p => p.y)) - 30;
-                const maxY = Math.max(...posiciones.map(p => p.y)) + 30;
-                
-                const width = maxX - minX;
-                const height = maxY - minY;
-                const centerX = minX + width / 2;
-                const centerY = minY + height / 2;
-                
-                // Crear elipse
-                const ellipse = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
-                ellipse.setAttribute('cx', centerX);
-                ellipse.setAttribute('cy', centerY);
-                ellipse.setAttribute('rx', Math.max(width / 2, 40));
-                ellipse.setAttribute('ry', Math.max(height / 2, 30));
-                ellipse.setAttribute('fill', `hsl(${index * 50}, 70%, 80%)`);
-                ellipse.setAttribute('fill-opacity', '0.2');
-                ellipse.setAttribute('stroke', `hsl(${index * 50}, 70%, 50%)`);
-                ellipse.setAttribute('stroke-width', '2');
-                ellipse.setAttribute('stroke-dasharray', '5,5');
-                ellipse.classList.add('burbuja-grupo');
-                ellipse.setAttribute('data-grupo', grupo);
-                
-                svg.appendChild(ellipse);
-                
-                // Etiqueta
-                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                text.setAttribute('x', centerX);
-                text.setAttribute('y', centerY - Math.max(height / 2, 30) - 10);
-                text.setAttribute('text-anchor', 'middle');
-                text.style.cssText = `
-                    font-family: var(--font-primary);
-                    font-size: 12px;
-                    font-weight: 600;
-                    fill: hsl(${index * 50}, 70%, 30%);
-                `;
-                text.textContent = grupo.replace(/_/g, ' ').toUpperCase();
-                text.classList.add('etiqueta-grupo');
-                
-                svg.appendChild(text);
-                burbujasCreadas++;
-            }
-            
-            console.log(`✅ Burbuja creada para grupo: ${grupo} (${nodosGrupo.length} nodos)`);
-        }
-    });
-    
-    console.log(`🎉 ${burbujasCreadas} burbujas forzadas creadas exitosamente`);
-    
-    if (burbujasCreadas > 0) {
-        mostrarNotificacion('success', `¡${burbujasCreadas} burbujas creadas! Cada grupo ahora tiene su burbuja visual.`);
-    }
-    
-    return burbujasCreadas;
-};
-
-console.log('🛠️ Scripts de reparación de burbujas cargados');
-console.log('💡 SOLUCIÓN PARA TUS BURBUJAS:');
-console.log('- reorganizarGruposParaBurbujas() - Redistribuir en 4 grupos principales');
-console.log('- forzarBurbujasParaTodos() - Crear burbujas incluso para grupos de 1 nodo');
-</script><!-- templates/index.html -->
+<!-- templates/index.html - VERSIÓN CORREGIDA CON PERSISTENCIA -->
 {% extends "base.html" %}
 
 {% block title %}Análisis de Red de Relaciones{% endblock %}
@@ -502,13 +83,13 @@ console.log('- forzarBurbujasParaTodos() - Crear burbujas incluso para grupos de
                             <i class="icon icon-settings icon-sm"></i>
                             Gestionar Grupos
                         </button>
-                        <button class="btn btn-outline-info btn-custom btn-sm me-2" onclick="mostrarPanelControlBurbujas()">
-                            <i class="icon icon-users icon-sm"></i>
-                            Control Burbujas
-                        </button>
-                        <button class="btn btn-outline-secondary btn-custom btn-sm" onclick="mostrarEstadisticasGruposModal()">
+                        <button class="btn btn-outline-info btn-custom btn-sm me-2" onclick="mostrarEstadisticasGruposModal()">
                             <i class="icon icon-chart icon-sm"></i>
                             Stats Grupos
+                        </button>
+                        <button class="btn btn-outline-secondary btn-custom btn-sm" onclick="diagnosticarProblemasPersistencia()">
+                            <i class="icon icon-settings icon-sm"></i>
+                            Debug
                         </button>
                     </div>
                 </div>
@@ -532,7 +113,7 @@ console.log('- forzarBurbujasParaTodos() - Crear burbujas incluso para grupos de
                         </div>
                         <div class="col-md-6">
                             <i class="icon icon-users icon-sm"></i>
-                            <strong>Burbujas:</strong> Las burbujas de colores muestran grupos como "Universidad", "Cádiz", "Trabajo", etc.
+                            <strong>Persistencia:</strong> Los grupos se guardan automáticamente y persisten al recargar la página.
                         </div>
                     </div>
                 </div>
@@ -567,9 +148,230 @@ console.log('- forzarBurbujasParaTodos() - Crear burbujas incluso para grupos de
 <!-- Incluir la corrección específica para aria-hidden -->
 <script src="{{ url_for('static', filename='js/aria-hidden-fix.js') }}"></script>
 
+<!-- NUEVOS SCRIPTS PARA PERSISTENCIA -->
+<script>
+// Incluir aquí las funciones de persistencia directamente en el HTML
+// para asegurar que estén disponibles inmediatamente
+
+// Función para enviar updates de grupos al servidor
+async function enviarActualizacionesGruposAlServidor(updates) {
+    if (!updates || updates.length === 0) {
+        console.log('📝 No hay actualizaciones de grupos para enviar');
+        return { success: true, message: 'Sin cambios que guardar' };
+    }
+    
+    try {
+        console.log('📤 Enviando actualizaciones de grupos al servidor:', updates);
+        
+        const response = await fetch('/actualizar_grupos', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                updates: updates
+            })
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `HTTP ${response.status}`);
+        }
+        
+        const result = await response.json();
+        console.log('✅ Respuesta del servidor:', result);
+        
+        return result;
+        
+    } catch (error) {
+        console.error('❌ Error enviando actualizaciones de grupos:', error);
+        throw error;
+    }
+}
+
+// Función para obtener grupos actuales del servidor
+async function obtenerGruposDelServidor() {
+    try {
+        console.log('📥 Obteniendo grupos actuales del servidor...');
+        
+        const response = await fetch('/obtener_grupos_personas');
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const result = await response.json();
+        console.log('✅ Grupos obtenidos del servidor:', result);
+        
+        return result.grupos || {};
+        
+    } catch (error) {
+        console.error('❌ Error obteniendo grupos del servidor:', error);
+        throw error;
+    }
+}
+
+// Función para sincronizar grupos al cargar la página
+async function sincronizarGruposAlCargar() {
+    console.log('🔄 Sincronizando grupos al cargar...');
+    
+    try {
+        // Obtener grupos actuales del servidor
+        const gruposServidor = await obtenerGruposDelServidor();
+        
+        if (!nodes) {
+            console.warn('⚠️ Nodes no disponible para sincronización');
+            return;
+        }
+        
+        // Comparar con grupos en memoria
+        const nodosActuales = nodes.get();
+        const actualizacionesNecesarias = [];
+        
+        nodosActuales.forEach(nodo => {
+            const grupoServidor = gruposServidor[nodo.id]?.grupo;
+            const grupoActual = nodo.grupo;
+            
+            if (grupoServidor !== grupoActual) {
+                console.log(`🔄 Sincronizando nodo ${nodo.id}: "${grupoActual}" → "${grupoServidor}"`);
+                
+                actualizacionesNecesarias.push({
+                    id: nodo.id,
+                    grupo: grupoServidor
+                });
+            }
+        });
+        
+        if (actualizacionesNecesarias.length > 0) {
+            nodes.update(actualizacionesNecesarias);
+            console.log(`✅ ${actualizacionesNecesarias.length} grupos sincronizados`);
+            
+            // Crear burbujas después de sincronizar
+            if (typeof crearBurbujasGrupos === 'function') {
+                setTimeout(crearBurbujasGrupos, 500);
+            }
+        } else {
+            console.log('✅ Grupos ya sincronizados');
+        }
+        
+    } catch (error) {
+        console.error('❌ Error sincronizando grupos:', error);
+    }
+}
+
+// Función para verificar sincronización
+window.verificarSincronizacionGrupos = async function() {
+    console.log('🔍 Verificando sincronización de grupos...');
+    
+    try {
+        const gruposServidor = await obtenerGruposDelServidor();
+        
+        if (!nodes) {
+            console.log('❌ Nodes no disponible');
+            return false;
+        }
+        
+        const nodosActuales = nodes.get();
+        
+        console.log('📊 COMPARACIÓN DE GRUPOS:');
+        console.log('========================');
+        
+        let diferencias = 0;
+        
+        nodosActuales.forEach(nodo => {
+            const grupoMemoria = nodo.grupo || 'sin_grupo';
+            const grupoServidor = gruposServidor[nodo.id]?.grupo || 'sin_grupo';
+            const nombre = nodo.label?.replace(/<[^>]*>/g, '') || `Nodo ${nodo.id}`;
+            
+            if (grupoMemoria !== grupoServidor) {
+                console.log(`❌ ${nombre}: Memoria="${grupoMemoria}" vs Servidor="${grupoServidor}"`);
+                diferencias++;
+            } else {
+                console.log(`✅ ${nombre}: "${grupoMemoria}" (sincronizado)`);
+            }
+        });
+        
+        console.log('========================');
+        console.log(`📈 Resultado: ${diferencias === 0 ? '✅ Totalmente sincronizado' : `❌ ${diferencias} diferencias encontradas`}`);
+        
+        return diferencias === 0;
+        
+    } catch (error) {
+        console.error('❌ Error verificando sincronización:', error);
+        return false;
+    }
+};
+
+// Función para diagnosticar problemas
+window.diagnosticarProblemasPersistencia = async function() {
+    console.log('🔍 DIAGNÓSTICO DE PERSISTENCIA:');
+    console.log('==============================');
+    
+    const problemas = [];
+    
+    // 1. Verificar backend
+    try {
+        const response = await fetch('/actualizar_grupos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ updates: [] })
+        });
+        
+        if (response.ok) {
+            console.log('✅ Endpoint /actualizar_grupos disponible');
+        } else {
+            problemas.push('❌ Endpoint /actualizar_grupos no responde correctamente');
+        }
+    } catch (error) {
+        problemas.push('❌ No se puede conectar con /actualizar_grupos: ' + error.message);
+    }
+    
+    // 2. Verificar obtener grupos
+    try {
+        const grupos = await obtenerGruposDelServidor();
+        console.log(`✅ Endpoint /obtener_grupos_personas disponible (${Object.keys(grupos).length} personas)`);
+    } catch (error) {
+        problemas.push('❌ Error obteniendo grupos del servidor: ' + error.message);
+    }
+    
+    // 3. Verificar dependencias
+    if (typeof nodes === 'undefined' || !nodes) {
+        problemas.push('❌ Variable nodes no disponible');
+    } else {
+        console.log(`✅ Nodes disponible (${nodes.length} nodos)`);
+    }
+    
+    if (typeof network === 'undefined' || !network) {
+        problemas.push('❌ Variable network no disponible');
+    } else {
+        console.log('✅ Network disponible');
+    }
+    
+    console.log('==============================');
+    
+    if (problemas.length === 0) {
+        console.log('🎉 ¡No se encontraron problemas de persistencia!');
+        await verificarSincronizacionGrupos();
+    } else {
+        console.log('🚨 PROBLEMAS ENCONTRADOS:');
+        problemas.forEach(problema => console.log(problema));
+        mostrarNotificacion('error', 'Se encontraron problemas en el sistema de persistencia. Revisa la consola.');
+    }
+    
+    return problemas.length === 0;
+};
+
+// Exportar funciones globalmente
+window.enviarActualizacionesGruposAlServidor = enviarActualizacionesGruposAlServidor;
+window.obtenerGruposDelServidor = obtenerGruposDelServidor;
+window.sincronizarGruposAlCargar = sincronizarGruposAlCargar;
+
+console.log('💾 Sistema de persistencia de grupos cargado directamente');
+</script>
+
 <!-- Script CORREGIDO para integración - SIN RECURSIÓN -->
 <script>
-console.log('🚀 Iniciando scripts de integración...');
+console.log('🚀 Iniciando scripts de integración con persistencia...');
 
 // Función CORREGIDA para mostrar estadísticas de grupos - SIN RECURSIÓN
 window.mostrarEstadisticasGruposModal = function() {
@@ -723,18 +525,32 @@ window.crearGruposDemo = function() {
         });
     });
     
-    // Aplicar cambios
+    // Aplicar cambios en frontend
     nodes.update(updates);
     
-    // Crear burbujas
-    setTimeout(() => {
-        if (typeof crearBurbujasGrupos === 'function') {
-            crearBurbujasGrupos();
-            console.log('✅ Burbujas de grupos creadas');
+    // Enviar cambios al servidor para persistencia
+    enviarActualizacionesGruposAlServidor(updates).then(resultado => {
+        if (resultado.success) {
+            console.log('✅ Grupos demo guardados en servidor');
+            
+            // Crear burbujas
+            setTimeout(() => {
+                if (typeof crearBurbujasGrupos === 'function') {
+                    crearBurbujasGrupos();
+                    console.log('✅ Burbujas de grupos creadas');
+                }
+            }, 500);
+            
+            mostrarNotificacion('success', '¡Grupos de demostración creados y guardados! Ahora puedes ver las burbujas de colores.');
+        } else {
+            console.error('❌ Error guardando grupos demo');
+            mostrarNotificacion('error', 'Error guardando grupos de demostración');
         }
-    }, 500);
+    }).catch(error => {
+        console.error('❌ Error enviando grupos demo al servidor:', error);
+        mostrarNotificacion('error', 'Error de conexión al guardar grupos demo');
+    });
     
-    mostrarNotificacion('success', '¡Grupos de demostración creados! Ahora puedes ver las burbujas de colores.');
     console.log('✅ Grupos demo aplicados a', updates.length, 'nodos');
 };
 
@@ -753,7 +569,17 @@ window.limpiarGruposDemo = function() {
         grupo: null
     }));
     
+    // Aplicar cambios en frontend
     nodes.update(updates);
+    
+    // Enviar cambios al servidor
+    enviarActualizacionesGruposAlServidor(updates).then(resultado => {
+        if (resultado.success) {
+            console.log('✅ Grupos limpiados en servidor');
+        }
+    }).catch(error => {
+        console.error('❌ Error limpiando grupos en servidor:', error);
+    });
     
     if (typeof limpiarBurbujasAnteriores === 'function') {
         limpiarBurbujasAnteriores();
@@ -814,8 +640,8 @@ function mostrarNotificacion(tipo, mensaje, duracion = 5000) {
 
 // Función de debug global para probar todo el sistema
 window.debugSistemaCompleto = function() {
-    console.log('🔍 DEBUG DEL SISTEMA COMPLETO:');
-    console.log('================================');
+    console.log('🔍 DEBUG DEL SISTEMA COMPLETO CON PERSISTENCIA:');
+    console.log('===============================================');
     
     // Verificar componentes principales
     console.log('📊 Red principal:', typeof network !== 'undefined' && network ? '✅ Disponible' : '❌ No disponible');
@@ -827,6 +653,11 @@ window.debugSistemaCompleto = function() {
     console.log('🔗 Creación aristas:', typeof configurarHoverCrearAristas === 'function' ? '✅ Disponible' : '❌ No disponible');
     console.log('🫧 Sistema burbujas:', typeof crearBurbujasGrupos === 'function' ? '✅ Disponible' : '❌ No disponible');
     console.log('📋 Gestión grupos:', typeof abrirModalGestionGrupos === 'function' ? '✅ Disponible' : '❌ No disponible');
+    
+    // Verificar persistencia
+    console.log('💾 Persistencia grupos:', typeof enviarActualizacionesGruposAlServidor === 'function' ? '✅ Disponible' : '❌ No disponible');
+    console.log('📥 Obtener grupos:', typeof obtenerGruposDelServidor === 'function' ? '✅ Disponible' : '❌ No disponible');
+    console.log('🔄 Sincronización:', typeof sincronizarGruposAlCargar === 'function' ? '✅ Disponible' : '❌ No disponible');
     
     // Estado de burbujas
     if (typeof burbujasActivas !== 'undefined') {
@@ -852,41 +683,54 @@ window.debugSistemaCompleto = function() {
     // Bootstrap
     console.log('🅱️ Bootstrap:', typeof bootstrap !== 'undefined' ? '✅ Disponible' : '❌ No disponible');
     
-    console.log('================================');
+    console.log('===============================================');
     console.log('💡 Funciones de prueba disponibles:');
-    console.log('- crearGruposDemo() - Crear grupos de demostración');
-    console.log('- limpiarGruposDemo() - Limpiar grupos demo');
+    console.log('- crearGruposDemo() - Crear grupos de demostración (CON PERSISTENCIA)');
+    console.log('- limpiarGruposDemo() - Limpiar grupos demo (CON PERSISTENCIA)');
+    console.log('- verificarSincronizacionGrupos() - Verificar sincronización con servidor');
+    console.log('- diagnosticarProblemasPersistencia() - Diagnosticar problemas');
     console.log('- mostrarEstadisticasGruposModal() - Ver estadísticas en modal');
-    console.log('- testBurbujas() - Probar sistema de burbujas (si está disponible)');
-    console.log('- testModalRelacion() - Probar modal de relaciones (si está disponible)');
-    console.log('- verificarNodos() - Ver todos los nodos disponibles (si está disponible)');
-    console.log('================================');
+    console.log('===============================================');
 };
 
 // Mostrar mensaje de bienvenida cuando todo esté listo
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('📄 DOM cargado, esperando sistemas...');
+    console.log('📄 DOM cargado, esperando sistemas con persistencia...');
     
     setTimeout(function() {
         // Verificar si todo está cargado
         const sistemaCompleto = (
             typeof network !== 'undefined' && network &&
             typeof crearBurbujasGrupos === 'function' &&
-            typeof abrirModalGestionGrupos === 'function'
+            typeof abrirModalGestionGrupos === 'function' &&
+            typeof enviarActualizacionesGruposAlServidor === 'function'
         );
         
         if (sistemaCompleto) {
-            console.log('🎉 ¡Sistema completo de red social con grupos cargado exitosamente!');
+            console.log('🎉 ¡Sistema completo de red social con grupos Y PERSISTENCIA cargado exitosamente!');
+            console.log('💾 Los grupos ahora se guardan automáticamente en el servidor');
+            console.log('🔄 Al recargar la página, los grupos se mantienen');
             console.log('💡 Ejecuta debugSistemaCompleto() para ver el estado completo');
-            console.log('🧪 Ejecuta crearGruposDemo() para ver una demostración de grupos');
-            console.log('📊 Ejecuta mostrarEstadisticasGruposModal() para ver estadísticas');
-            console.log('✨ ¡Todo listo para usar!');
+            console.log('🧪 Ejecuta crearGruposDemo() para ver una demostración de grupos PERSISTENTES');
+            console.log('🔍 Ejecuta diagnosticarProblemasPersistencia() para verificar el sistema');
+            console.log('✨ ¡Todo listo para usar con persistencia completa!');
+            
+            // Sincronizar grupos automáticamente al cargar
+            setTimeout(async () => {
+                try {
+                    await sincronizarGruposAlCargar();
+                    console.log('🔄 Sincronización automática completada');
+                } catch (error) {
+                    console.warn('⚠️ Error en sincronización automática:', error);
+                }
+            }, 1000);
+            
         } else {
             console.log('⏳ Sistema aún cargando... ejecuta debugSistemaCompleto() para ver el estado');
         }
     }, 3000);
 });
 
-console.log('✅ Scripts de integración cargados correctamente');
+console.log('✅ Scripts de integración con persistencia cargados correctamente');
 </script>
 {% endblock %}
