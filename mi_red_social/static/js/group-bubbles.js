@@ -1,13 +1,19 @@
-// static/js/group-bubbles.js - Sistema de burbujas de grupos COMPLETO Y FUNCIONAL
+// static/js/group-bubbles.js - Sistema de burbujas CORREGIDO para zoom
+// VERSIÓN COMPLETA Y FUNCIONAL CON TRANSFORMACIÓN EN TIEMPO REAL
 
 let gruposBurbujas = {};
 let burbujasActivas = true;
 let opacidadBurbujas = 0.15;
 let coloresGrupos = {};
 
-// ========== FUNCIONES AUXILIARES ==========
+// Variables para el control de movimiento en tiempo real
+let animationFrameId = null;
+let isMoving = false;
+let transformacionActual = { scale: 1, translateX: 0, translateY: 0 };
 
-// Función para crear SVG de forma robusta - CON TRANSFORMACIÓN EN TIEMPO REAL
+// ========== FUNCIONES AUXILIARES MEJORADAS ==========
+
+// Función para crear SVG de forma robusta - CON CONFIGURACIÓN MEJORADA PARA ZOOM
 function crearSVGRobusto(container) {
     // Eliminar SVG anterior si existe
     const svgAnterior = container.querySelector('.burbujas-svg');
@@ -19,7 +25,7 @@ function crearSVGRobusto(container) {
     // Obtener dimensiones reales del contenedor
     const rect = container.getBoundingClientRect();
     
-    // Crear nuevo SVG con configuración robusta Y limitado al contenedor
+    // Crear nuevo SVG con configuración mejorada para zoom
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.classList.add('burbujas-svg');
     svg.style.cssText = `
@@ -30,29 +36,62 @@ function crearSVGRobusto(container) {
         height: 100% !important;
         pointer-events: none !important;
         z-index: 1 !important;
-        overflow: hidden !important;
-        clip-path: inset(0) !important;
+        overflow: visible !important;
     `;
     
-    // Establecer viewBox para que coincida con el contenedor
+    // Establecer viewBox dinámico que se ajusta al zoom
     svg.setAttribute('viewBox', `0 0 ${rect.width} ${rect.height}`);
     svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
     
-    // Crear grupo principal que contendrá todas las burbujas
+    // Crear grupo principal transformable
     const grupoTransformable = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     grupoTransformable.classList.add('grupo-burbujas-transformable');
     svg.appendChild(grupoTransformable);
     
-    // Insertar SVG al inicio del contenedor para mejor compatibilidad
-    container.insertBefore(svg, container.firstChild);
-    console.log('✅ SVG robusto creado con grupo transformable');
+    // Insertar SVG al contenedor
+    container.appendChild(svg);
+    console.log('✅ SVG robusto creado con soporte mejorado para zoom');
     
     return svg;
 }
 
+// Función MEJORADA para aplicar transformación en tiempo real
+function aplicarTransformacionBurbujas() {
+    const container = document.getElementById('network');
+    const svg = container?.querySelector('.burbujas-svg');
+    const grupoTransformable = svg?.querySelector('.grupo-burbujas-transformable');
+    
+    if (!grupoTransformable || !network) return;
+    
+    try {
+        // Obtener transformación actual del grafo
+        const scale = network.getScale();
+        const viewPosition = network.getViewPosition();
+        const rect = container.getBoundingClientRect();
+        
+        // Calcular transformación que coincida exactamente con la del grafo
+        const translateX = rect.width / 2 - viewPosition.x * scale;
+        const translateY = rect.height / 2 - viewPosition.y * scale;
+        
+        // Aplicar transformación al grupo
+        const transform = `translate(${translateX}, ${translateY}) scale(${scale})`;
+        grupoTransformable.setAttribute('transform', transform);
+        
+        // Guardar transformación actual para referencia
+        transformacionActual = { scale, translateX, translateY };
+        
+        // Debug ocasional
+        if (Math.random() < 0.01) { // 1% de las veces
+            console.log(`🔄 Transformación aplicada: scale=${scale.toFixed(2)}, translate=(${translateX.toFixed(1)}, ${translateY.toFixed(1)})`);
+        }
+        
+    } catch (error) {
+        console.error('❌ Error aplicando transformación:', error);
+    }
+}
+
 // Función para crear círculo para un solo nodo - COORDENADAS FIJAS AL GRAFO
-function crearCirculoGrupoFijo(grupoSvg, posicion, nombreGrupo, color) {
-    // Usar coordenadas directas del grafo
+function crearCirculoGrupoFijo(grupoSvg, posicion, nombreGrupo, color, index) {
     const radius = 60; // Radio fijo en coordenadas del grafo
     
     const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
@@ -75,8 +114,7 @@ function crearCirculoGrupoFijo(grupoSvg, posicion, nombreGrupo, color) {
 }
 
 // Función para crear elipse para múltiples nodos - COORDENADAS FIJAS AL GRAFO
-function crearElipseGrupoFijo(grupoSvg, posiciones, nombreGrupo, color) {
-    // Calcular área contenedora en coordenadas del grafo
+function crearElipseGrupoFijo(grupoSvg, posiciones, nombreGrupo, color, index) {
     const margen = 50; // Margen en coordenadas del grafo
     const minX = Math.min(...posiciones.map(p => p.x)) - margen;
     const maxX = Math.max(...posiciones.map(p => p.x)) + margen;
@@ -134,29 +172,6 @@ function crearEtiquetaGrupoFija(grupoSvg, x, y, nombreGrupo, color) {
     grupoSvg.appendChild(text);
 }
 
-// Función para aplicar transformación en tiempo real
-function aplicarTransformacionBurbujas() {
-    const container = document.getElementById('network');
-    const svg = container.querySelector('.burbujas-svg');
-    const grupoTransformable = svg?.querySelector('.grupo-burbujas-transformable');
-    
-    if (!grupoTransformable || !network) return;
-    
-    // Obtener transformación actual del grafo
-    const scale = network.getScale();
-    const viewPosition = network.getViewPosition();
-    const rect = container.getBoundingClientRect();
-    
-    // Calcular transformación CSS que coincida con la del grafo
-    const translateX = rect.width / 2 - viewPosition.x * scale;
-    const translateY = rect.height / 2 - viewPosition.y * scale;
-    
-    // Aplicar transformación al grupo
-    grupoTransformable.setAttribute('transform', 
-        `translate(${translateX}, ${translateY}) scale(${scale})`
-    );
-}
-
 // Función robusta para crear burbuja individual - POSICIONES FIJAS AL GRAFO
 function crearBurbujaGrupoRobusta(nombreGrupo, nodosGrupo, svg, coloresGrupos, index) {
     try {
@@ -172,15 +187,10 @@ function crearBurbujaGrupoRobusta(nombreGrupo, nodosGrupo, svg, coloresGrupos, i
         const posicionesRed = network.getPositions();
         const posiciones = [];
         
-        // Obtener dimensiones del contenedor para referencia
-        const container = document.getElementById('network');
-        const rect = container.getBoundingClientRect();
-        
         nodosGrupo.forEach(nodo => {
             const pos = posicionesRed[nodo.id];
             if (pos) {
                 // Usar coordenadas directas del grafo (sin transformar)
-                // Estas coordenadas se transformarán automáticamente con el grupo
                 posiciones.push({
                     x: pos.x,
                     y: pos.y
@@ -198,10 +208,10 @@ function crearBurbujaGrupoRobusta(nombreGrupo, nodosGrupo, svg, coloresGrupos, i
         if (posiciones.length === 1) {
             // Un solo nodo - crear círculo
             const pos = posiciones[0];
-            crearCirculoGrupoFijo(grupoTransformable, pos, nombreGrupo, color);
+            crearCirculoGrupoFijo(grupoTransformable, pos, nombreGrupo, color, index);
         } else {
             // Múltiples nodos - crear elipse contenedora
-            crearElipseGrupoFijo(grupoTransformable, posiciones, nombreGrupo, color);
+            crearElipseGrupoFijo(grupoTransformable, posiciones, nombreGrupo, color, index);
         }
         
         // Aplicar transformación inicial
@@ -265,6 +275,13 @@ function agruparNodosPorGrupo() {
 function limpiarBurbujasAnteriores() {
     const container = document.getElementById('network');
     if (!container) return;
+    
+    // Detener animaciones en curso
+    if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+    }
+    isMoving = false;
     
     // Buscar y eliminar todos los SVG de burbujas
     const svgs = container.querySelectorAll('.burbujas-svg');
@@ -354,11 +371,11 @@ function agregarCSSAnimaciones() {
 
 // ========== FUNCIONES PRINCIPALES ==========
 
-// Función principal para crear burbujas de grupos - VERSIÓN ROBUSTA
+// Función principal para crear burbujas de grupos - VERSIÓN ROBUSTA CON ZOOM
 function crearBurbujasGrupos() {
     if (!burbujasActivas) return;
     
-    console.log('🫧 Iniciando creación de burbujas robustas...');
+    console.log('🫧 Iniciando creación de burbujas robustas con soporte completo de zoom...');
     
     // Verificar dependencias
     if (!network || !nodes) {
@@ -402,9 +419,9 @@ function crearBurbujasGrupos() {
     
     let burbujasCreadas = 0;
     
-    // Crear burbuja para cada grupo (incluso con 1 nodo)
+    // Crear burbuja para cada grupo
     Object.entries(nodosPorGrupo).forEach(([grupo, nodosGrupo], index) => {
-        if (nodosGrupo.length > 0) { // Cambié de > 1 a > 0 para mostrar todos los grupos
+        if (nodosGrupo.length > 0) {
             console.log(`🔄 Creando burbuja para: ${grupo} (${nodosGrupo.length} nodos)`);
             
             const exito = crearBurbujaGrupoRobusta(grupo, nodosGrupo, svg, coloresGrupos, index);
@@ -417,20 +434,142 @@ function crearBurbujasGrupos() {
     // Agregar CSS de animaciones si no existe
     agregarCSSAnimaciones();
     
-    console.log(`✅ ${burbujasCreadas} burbujas creadas exitosamente`);
+    console.log(`✅ ${burbujasCreadas} burbujas creadas exitosamente con soporte de zoom`);
     
     // Verificación final
     setTimeout(() => {
         const svgVerificacion = container.querySelector('.burbujas-svg');
         if (svgVerificacion) {
             const burbujas = svgVerificacion.querySelectorAll('.burbuja-grupo');
-            console.log(`🔍 Verificación: ${burbujas.length} burbujas en el DOM`);
+            console.log(`🔍 Verificación: ${burbujas.length} burbujas en el DOM con zoom habilitado`);
             
             if (typeof mostrarNotificacion === 'function' && burbujas.length > 0) {
-                mostrarNotificacion('success', `¡${burbujas.length} burbujas de grupos creadas!`);
+                mostrarNotificacion('success', `¡${burbujas.length} burbujas de grupos creadas con soporte de zoom!`);
             }
         }
     }, 300);
+}
+
+// ========== SISTEMA DE EVENTOS MEJORADO PARA ZOOM ==========
+
+// Función para configurar eventos de actualización - MOVIMIENTO EN TIEMPO REAL MEJORADO
+function configurarEventosBurbujas() {
+    if (!network) return;
+    
+    // Función para actualizar transformación en tiempo real
+    function actualizarTransformacionEnTiempoReal() {
+        aplicarTransformacionBurbujas();
+        
+        if (isMoving) {
+            animationFrameId = requestAnimationFrame(actualizarTransformacionEnTiempoReal);
+        }
+    }
+    
+    // Función para iniciar movimiento en tiempo real
+    function iniciarMovimientoTiempoReal() {
+        if (!isMoving) {
+            isMoving = true;
+            actualizarTransformacionEnTiempoReal();
+            console.log('🔄 Iniciando transformación en tiempo real');
+        }
+    }
+    
+    // Función para detener movimiento en tiempo real
+    function detenerMovimientoTiempoReal() {
+        isMoving = false;
+        if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
+        }
+        // Una actualización final para asegurar posición correcta
+        setTimeout(() => aplicarTransformacionBurbujas(), 50);
+        console.log('⏹️ Deteniendo transformación en tiempo real');
+    }
+    
+    // Eventos para zoom (movimiento en tiempo real)
+    network.on('zoom', function() {
+        if (!burbujasActivas) return;
+        iniciarMovimientoTiempoReal();
+        
+        // Detener después de un momento de inactividad
+        clearTimeout(window.zoomTimeout);
+        window.zoomTimeout = setTimeout(() => {
+            detenerMovimientoTiempoReal();
+        }, 100);
+    });
+    
+    // Eventos para pan/drag de vista (movimiento en tiempo real)
+    network.on('dragStart', function(params) {
+        if (!burbujasActivas) return;
+        if (params.nodes.length === 0) { // Es un drag de la vista
+            iniciarMovimientoTiempoReal();
+        }
+    });
+    
+    network.on('dragging', function(params) {
+        if (!burbujasActivas) return;
+        if (params.nodes.length === 0) { // Es un drag de la vista
+            // El movimiento ya está activo
+        } else {
+            // Es un drag de nodos, detener y recrear después
+            detenerMovimientoTiempoReal();
+        }
+    });
+    
+    network.on('dragEnd', function(params) {
+        if (!burbujasActivas) return;
+        detenerMovimientoTiempoReal();
+        
+        // Si se movieron nodos, recrear las burbujas
+        if (params.nodes.length > 0) {
+            setTimeout(() => crearBurbujasGrupos(), 200);
+        }
+    });
+    
+    // Actualizar burbujas cuando se estabiliza la física
+    network.on('stabilizationIterationsDone', function() {
+        if (burbujasActivas) {
+            setTimeout(() => {
+                crearBurbujasGrupos();
+            }, 200);
+        }
+    });
+    
+    // Actualizar burbujas cuando se ajusta la vista (fit)
+    network.on('afterDrawing', function() {
+        if (burbujasActivas) {
+            setTimeout(() => {
+                aplicarTransformacionBurbujas();
+            }, 100);
+        }
+    });
+    
+    // Actualizar burbujas cuando cambia el tamaño de la ventana
+    window.addEventListener('resize', function() {
+        if (burbujasActivas) {
+            detenerMovimientoTiempoReal();
+            setTimeout(() => {
+                crearBurbujasGrupos();
+            }, 300);
+        }
+    });
+    
+    // Eventos de teclado para zoom suave
+    document.addEventListener('keydown', function(e) {
+        if (!burbujasActivas) return;
+        
+        // Detectar zoom con teclado (+ y -)
+        if (e.key === '+' || e.key === '=' || e.key === '-') {
+            iniciarMovimientoTiempoReal();
+            
+            // Detener después de un momento
+            setTimeout(() => {
+                detenerMovimientoTiempoReal();
+            }, 500);
+        }
+    });
+    
+    console.log('✅ Eventos de burbujas configurados con soporte completo de zoom y movimiento en tiempo real');
 }
 
 // Función para toggle de burbujas
@@ -440,7 +579,7 @@ function toggleBurbujas() {
     if (burbujasActivas) {
         crearBurbujasGrupos();
         if (typeof mostrarNotificacion === 'function') {
-            mostrarNotificacion('success', 'Burbujas de grupos activadas');
+            mostrarNotificacion('success', 'Burbujas de grupos activadas con soporte de zoom');
         }
     } else {
         limpiarBurbujasAnteriores();
@@ -513,138 +652,6 @@ function obtenerEstadisticasGrupos() {
     return estadisticas;
 }
 
-// Función para configurar eventos de actualización - MOVIMIENTO EN TIEMPO REAL
-function configurarEventosBurbujas() {
-    if (!network) return;
-    
-    // Variables para el control de movimiento en tiempo real
-    let animationFrameId = null;
-    let isMoving = false;
-    
-    // Función para actualizar transformación en tiempo real
-    function actualizarTransformacionEnTiempoReal() {
-        aplicarTransformacionBurbujas();
-        
-        if (isMoving) {
-            animationFrameId = requestAnimationFrame(actualizarTransformacionEnTiempoReal);
-        }
-    }
-    
-    // Función para iniciar movimiento en tiempo real
-    function iniciarMovimientoTiempoReal() {
-        if (!isMoving) {
-            isMoving = true;
-            actualizarTransformacionEnTiempoReal();
-        }
-    }
-    
-    // Función para detener movimiento en tiempo real
-    function detenerMovimientoTiempoReal() {
-        isMoving = false;
-        if (animationFrameId) {
-            cancelAnimationFrame(animationFrameId);
-            animationFrameId = null;
-        }
-        // Una actualización final para asegurar posición correcta
-        setTimeout(() => aplicarTransformacionBurbujas(), 50);
-    }
-    
-    // Eventos para zoom (movimiento en tiempo real)
-    network.on('zoom', function() {
-        if (!burbujasActivas) return;
-        iniciarMovimientoTiempoReal();
-    });
-    
-    // Eventos para pan/drag de vista (movimiento en tiempo real)
-    network.on('dragStart', function(params) {
-        if (!burbujasActivas) return;
-        if (params.nodes.length === 0) { // Es un drag de la vista
-            iniciarMovimientoTiempoReal();
-        }
-    });
-    
-    network.on('dragging', function(params) {
-        if (!burbujasActivas) return;
-        if (params.nodes.length === 0) { // Es un drag de la vista
-            // El movimiento ya está activo, no necesitamos hacer nada aquí
-        } else {
-            // Es un drag de nodos, recrear burbujas después
-            detenerMovimientoTiempoReal();
-        }
-    });
-    
-    network.on('dragEnd', function(params) {
-        if (!burbujasActivas) return;
-        detenerMovimientoTiempoReal();
-        
-        // Si se movieron nodos, recrear las burbujas
-        if (params.nodes.length > 0) {
-            setTimeout(() => crearBurbujasGrupos(), 100);
-        }
-    });
-    
-    // Eventos para cuando el usuario hace scroll o usa el mouse wheel
-    let zoomTimeout = null;
-    network.on('zoom', function() {
-        if (!burbujasActivas) return;
-        
-        // Limpiar timeout anterior
-        if (zoomTimeout) {
-            clearTimeout(zoomTimeout);
-        }
-        
-        // Detener movimiento después de que pare el zoom
-        zoomTimeout = setTimeout(() => {
-            detenerMovimientoTiempoReal();
-        }, 150); // 150ms sin zoom para considerar que paró
-    });
-    
-    // Actualizar burbujas cuando se estabiliza la física
-    network.on('stabilizationIterationsDone', function() {
-        if (burbujasActivas) {
-            setTimeout(() => {
-                crearBurbujasGrupos();
-            }, 200);
-        }
-    });
-    
-    // Actualizar burbujas cuando se ajusta la vista (fit)
-    network.on('afterDrawing', function() {
-        if (burbujasActivas) {
-            setTimeout(() => {
-                aplicarTransformacionBurbujas();
-            }, 100);
-        }
-    });
-    
-    // Actualizar burbujas cuando cambia el tamaño de la ventana
-    window.addEventListener('resize', function() {
-        if (burbujasActivas) {
-            detenerMovimientoTiempoReal();
-            setTimeout(() => {
-                crearBurbujasGrupos();
-            }, 300);
-        }
-    });
-    
-    // Eventos de teclado para zoom suave
-    document.addEventListener('keydown', function(e) {
-        if (!burbujasActivas) return;
-        
-        // Detectar zoom con teclado (+ y -)
-        if (e.key === '+' || e.key === '=' || e.key === '-') {
-            iniciarMovimientoTiempoReal();
-            
-            // Detener después de un momento
-            setTimeout(() => {
-                detenerMovimientoTiempoReal();
-            }, 500);
-        }
-    });
-    
-    console.log('✅ Eventos de burbujas configurados con movimiento en tiempo real');
-}
-
 // Función para inicializar el sistema de burbujas
 function inicializarSistemaBurbujas() {
     if (!network || !nodes) {
@@ -652,7 +659,7 @@ function inicializarSistemaBurbujas() {
         return;
     }
     
-    console.log('🫧 Inicializando sistema de burbujas...');
+    console.log('🫧 Inicializando sistema de burbujas con soporte completo de zoom...');
     
     // Crear burbujas iniciales
     crearBurbujasGrupos();
@@ -660,7 +667,7 @@ function inicializarSistemaBurbujas() {
     // Configurar eventos para actualizar burbujas
     configurarEventosBurbujas();
     
-    console.log('✅ Sistema de burbujas inicializado');
+    console.log('✅ Sistema de burbujas inicializado con soporte de zoom');
 }
 
 // ========== INICIALIZACIÓN ==========
@@ -670,7 +677,7 @@ function inicializarSistemaBurbujasCompleto() {
     // Esperar a que la red esté lista
     if (typeof network !== 'undefined' && network && typeof nodes !== 'undefined' && nodes) {
         inicializarSistemaBurbujas();
-        console.log('🫧 Sistema completo de burbujas inicializado');
+        console.log('🫧 Sistema completo de burbujas inicializado con soporte de zoom');
     } else {
         // Reintentar después de un momento
         setTimeout(inicializarSistemaBurbujasCompleto, 1000);
@@ -691,12 +698,75 @@ window.debugBurbujas = function() {
     console.log('🔍 Estado del sistema de burbujas:');
     console.log('- Burbujas activas:', burbujasActivas);
     console.log('- Opacidad:', opacidadBurbujas);
+    console.log('- Transformación actual:', transformacionActual);
+    console.log('- Animación en curso:', isMoving);
     console.log('- Estadísticas:', obtenerEstadisticasGrupos());
 };
 
 window.testBurbujas = function() {
-    console.log('🧪 Test manual de burbujas');
+    console.log('🧪 Test manual de burbujas con zoom');
     crearBurbujasGrupos();
+};
+
+window.testZoomBurbujas = function() {
+    console.log('🔍 Test de zoom con burbujas...');
+    
+    if (!network) {
+        console.error('❌ Network no disponible');
+        return;
+    }
+    
+    console.log('🔄 Probando diferentes niveles de zoom...');
+    
+    // Test de diferentes niveles de zoom
+    const nivelesZoom = [0.5, 1, 1.5, 2, 3];
+    let indice = 0;
+    
+    function probarSiguienteZoom() {
+        if (indice < nivelesZoom.length) {
+            const zoom = nivelesZoom[indice];
+            console.log(`📏 Probando zoom: ${zoom}x`);
+            
+            network.moveTo({
+                scale: zoom,
+                animation: {
+                    duration: 1000,
+                    easingFunction: 'easeInOutQuad'
+                }
+            });
+            
+            indice++;
+            setTimeout(probarSiguienteZoom, 2000);
+        } else {
+            console.log('✅ Test de zoom completado');
+            // Volver al zoom normal
+            network.fit({
+                animation: {
+                    duration: 1000,
+                    easingFunction: 'easeInOutQuad'
+                }
+            });
+        }
+    }
+    
+    probarSiguienteZoom();
+};
+
+window.forzarActualizacionBurbujas = function() {
+    console.log('💪 Forzando actualización de burbujas...');
+    
+    // Detener cualquier animación en curso
+    if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+    }
+    isMoving = false;
+    
+    // Recrear burbujas
+    setTimeout(() => {
+        crearBurbujasGrupos();
+        console.log('✅ Burbujas actualizadas forzadamente');
+    }, 100);
 };
 
 // Inicializar cuando el DOM esté listo
@@ -706,4 +776,4 @@ if (document.readyState === 'loading') {
     inicializarSistemaBurbujasCompleto();
 }
 
-console.log('🫧 Sistema de burbujas de grupos cargado completamente');
+console.log('🫧 Sistema de burbujas de grupos cargado completamente con soporte de zoom mejorado');
