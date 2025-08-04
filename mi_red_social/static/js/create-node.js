@@ -538,33 +538,71 @@ function posicionarNuevoNodo(nombrePersona) {
         console.warn('⚠️ Nodes o network no disponibles para posicionamiento');
         return;
     }
-    
+
     // Buscar el nodo recién creado por nombre
     const nodosActuales = nodes.get();
-    const nuevoNodo = nodosActuales.find(node => 
+    const nuevoNodo = nodosActuales.find(node =>
         node.label && node.label.includes(nombrePersona)
     );
-    
+
     if (nuevoNodo) {
         console.log('🎯 Posicionando nodo:', nuevoNodo.id, 'en:', posicionNuevoNodo);
-        
-        // Actualizar posición del nodo
+
+        // Usar la posición del doble clic (más intuitivo)
+        const posicionGrafo = network.DOMtoCanvas(posicionNuevoNodo);
+
+        // Colocar el nodo en esa posición y desactivar física momentáneamente
         nodes.update({
             id: nuevoNodo.id,
-            x: posicionNuevoNodo.x,
-            y: posicionNuevoNodo.y
+            x: posicionGrafo.x,
+            y: posicionGrafo.y,
+            physics: false
         });
-        
-        // Centrar la vista en el nuevo nodo
-        network.focus(nuevoNodo.id, {
-            animation: {
-                duration: 1000,
-                easingFunction: 'easeInOutQuad'
+
+        console.log(`✅ Nodo "${nombrePersona}" posicionado en:`, posicionGrafo);
+
+        // Activar física tras 1-2 segundos para que se integre en la red suavemente
+        setTimeout(() => {
+            nodes.update({
+                id: nuevoNodo.id,
+                physics: true
+            });
+        }, 1200);
+
+        // Configurar dispersión para evitar que se compacte demasiado
+        network.setOptions({
+            physics: {
+                barnesHut: {
+                    gravitationalConstant: -20000, // Fuerza repulsiva más débil
+                    springLength: 200,             // Longitud más larga para los muelles
+                    springConstant: 0.05,          // Menos atracción entre los nodos
+                    damping: 0.15
+                }
             }
         });
-        
-        console.log(`✅ Nodo "${nombrePersona}" posicionado correctamente`);
-        
+
+        // Solo ajustar la vista si el nodo está muy lejos del centro visible
+        const containerRect = document.getElementById('network').getBoundingClientRect();
+        const centerX = containerRect.width / 2;
+        const centerY = containerRect.height / 2;
+
+        const nodePosScreen = network.canvasToDOM(posicionGrafo);
+        const distanceFromCenter = Math.sqrt(
+            Math.pow(nodePosScreen.x - centerX, 2) +
+            Math.pow(nodePosScreen.y - centerY, 2)
+        );
+
+        if (distanceFromCenter > 300) {
+            network.moveTo({
+                position: { x: posicionGrafo.x, y: posicionGrafo.y },
+                scale: Math.max(network.getScale(), 1),
+                animation: {
+                    duration: 800,
+                    easingFunction: 'easeInOutQuad'
+                }
+            });
+        }
+
         // Eliminar indicador de posición si existe
         const indicador = document.getElementById('indicador-posicion');
         if (indicador) {
@@ -574,6 +612,8 @@ function posicionarNuevoNodo(nombrePersona) {
         console.warn('⚠️ No se encontró el nodo recién creado para posicionamiento');
     }
 }
+
+
 
 // Función para mostrar notificaciones
 function mostrarNotificacion(tipo, mensaje) {
