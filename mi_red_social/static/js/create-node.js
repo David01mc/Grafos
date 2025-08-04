@@ -140,6 +140,7 @@ async function crearModalNodo() {
 }
 
 // Función para configurar la funcionalidad de doble clic
+// Función CORREGIDA para configurar la funcionalidad de doble clic
 function configurarDobleClickCrearNodo() {
     if (!network) {
         console.warn('⚠️ Red no inicializada, no se puede configurar doble clic');
@@ -150,15 +151,13 @@ function configurarDobleClickCrearNodo() {
     network.on("doubleClick", function(params) {
         // Solo crear nodo si no se hizo clic en un nodo existente
         if (params.nodes.length === 0) {
-            const canvasPosition = params.pointer.canvas;
+            // Usar las coordenadas DOM directamente (más intuitivo para el usuario)
+            posicionNuevoNodo = params.pointer.DOM;
             
-            // Convertir posición del canvas a coordenadas del grafo
-            posicionNuevoNodo = network.canvasToDOM(canvasPosition);
-            
-            console.log('🎯 Doble clic detectado en posición:', posicionNuevoNodo);
+            console.log('🎯 Doble clic detectado en coordenadas DOM:', posicionNuevoNodo);
             
             // Mostrar indicador visual temporal
-            mostrarIndicadorPosicion(canvasPosition);
+            mostrarIndicadorPosicion(posicionNuevoNodo);
             
             // Abrir modal para crear nodo
             abrirModalCrearNodo();
@@ -168,8 +167,8 @@ function configurarDobleClickCrearNodo() {
     console.log('✅ Funcionalidad de doble clic configurada');
 }
 
-// Función para mostrar indicador visual en la posición seleccionada
-function mostrarIndicadorPosicion(canvasPos) {
+// Función CORREGIDA para mostrar indicador visual en la posición seleccionada
+function mostrarIndicadorPosicion(posicionDOM) {
     const container = document.getElementById('network');
     
     // Eliminar indicador anterior si existe
@@ -178,13 +177,13 @@ function mostrarIndicadorPosicion(canvasPos) {
         indicadorAnterior.remove();
     }
     
-    // Crear indicador temporal
+    // Crear indicador temporal usando las coordenadas DOM directamente
     const indicador = document.createElement('div');
     indicador.id = 'indicador-posicion';
     indicador.style.cssText = `
         position: absolute;
-        left: ${canvasPos.x - 10}px;
-        top: ${canvasPos.y - 10}px;
+        left: ${posicionDOM.x - 10}px;
+        top: ${posicionDOM.y - 10}px;
         width: 20px;
         height: 20px;
         border: 3px solid #10b981;
@@ -219,7 +218,6 @@ function mostrarIndicadorPosicion(canvasPos) {
         }
     }, 3000);
 }
-
 // Función para abrir el modal de creación
 async function abrirModalCrearNodo() {
     // Evitar múltiples modales
@@ -532,7 +530,7 @@ async function recargarSoloDatos() {
     }
 }
 
-// Función para posicionar el nuevo nodo en la posición del doble clic
+// Función CORREGIDA para posicionar el nuevo nodo sin explotar el grafo
 function posicionarNuevoNodo(nombrePersona) {
     if (!nodes || !network) {
         console.warn('⚠️ Nodes o network no disponibles para posicionamiento');
@@ -548,59 +546,56 @@ function posicionarNuevoNodo(nombrePersona) {
     if (nuevoNodo) {
         console.log('🎯 Posicionando nodo:', nuevoNodo.id, 'en:', posicionNuevoNodo);
 
-        // Usar la posición del doble clic (más intuitivo)
+        // Convertir posición DOM a coordenadas del grafo
         const posicionGrafo = network.DOMtoCanvas(posicionNuevoNodo);
 
-        // Colocar el nodo en esa posición y desactivar física momentáneamente
+        // Actualizar SOLO el nuevo nodo con física desactivada temporalmente
         nodes.update({
             id: nuevoNodo.id,
             x: posicionGrafo.x,
             y: posicionGrafo.y,
-            physics: false
+            physics: false // Solo desactivar física para este nodo específico
         });
 
-        console.log(`✅ Nodo "${nombrePersona}" posicionado en:`, posicionGrafo);
+        console.log(`✅ Nodo "${nombrePersona}" posicionado en coordenadas del grafo:`, posicionGrafo);
 
-        // Activar física tras 1-2 segundos para que se integre en la red suavemente
+        // Re-activar física SOLO para el nuevo nodo después de un momento
         setTimeout(() => {
             nodes.update({
                 id: nuevoNodo.id,
                 physics: true
             });
-        }, 1200);
+            console.log('⚡ Física reactivada para el nuevo nodo');
+        }, 2000);
 
-        // Configurar dispersión para evitar que se compacte demasiado
-        network.setOptions({
-            physics: {
-                barnesHut: {
-                    gravitationalConstant: -20000, // Fuerza repulsiva más débil
-                    springLength: 200,             // Longitud más larga para los muelles
-                    springConstant: 0.05,          // Menos atracción entre los nodos
-                    damping: 0.15
-                }
-            }
-        });
+        // NO modificar la configuración global de física - ESTO ERA EL PROBLEMA
+        // La configuración global debe mantenerse estable
 
-        // Solo ajustar la vista si el nodo está muy lejos del centro visible
+        // Solo ajustar vista si el nodo está muy lejos del centro visible
+        const viewPosition = network.getViewPosition();
+        const scale = network.getScale();
+        
         const containerRect = document.getElementById('network').getBoundingClientRect();
         const centerX = containerRect.width / 2;
         const centerY = containerRect.height / 2;
-
+        
         const nodePosScreen = network.canvasToDOM(posicionGrafo);
         const distanceFromCenter = Math.sqrt(
-            Math.pow(nodePosScreen.x - centerX, 2) +
+            Math.pow(nodePosScreen.x - centerX, 2) + 
             Math.pow(nodePosScreen.y - centerY, 2)
         );
-
-        if (distanceFromCenter > 300) {
+        
+        // Solo ajustar vista si está a más de 400px del centro (evitar saltos bruscos)
+        if (distanceFromCenter > 400) {
             network.moveTo({
                 position: { x: posicionGrafo.x, y: posicionGrafo.y },
-                scale: Math.max(network.getScale(), 1),
+                scale: Math.max(scale, 0.8), // Mantener zoom razonable
                 animation: {
-                    duration: 800,
+                    duration: 1000,
                     easingFunction: 'easeInOutQuad'
                 }
             });
+            console.log('📍 Vista ajustada para nodo lejano');
         }
 
         // Eliminar indicador de posición si existe
@@ -612,7 +607,6 @@ function posicionarNuevoNodo(nombrePersona) {
         console.warn('⚠️ No se encontró el nodo recién creado para posicionamiento');
     }
 }
-
 
 
 // Función para mostrar notificaciones
