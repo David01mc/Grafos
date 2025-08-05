@@ -573,3 +573,13 @@ body.modal-open {
 
 /* ========== SOLUCIÓN PARA SCROLL AUTOMÁTICO DE MODALES ========== */
 
+.modal-dialog-scrollable {
+    max-height: 90vh;
+}
+.modal-content {
+    max-height: 90vh;
+}
+.modal-body {
+    overflow-y: auto;
+    max-height: 80vh;
+}
