@@ -2,6 +2,7 @@
 let network;
 let physicsEnabled = false;
 let nodes, edges;
+let redLista = false; // Variable para controlar si ya se mostró el mensaje de éxito
 
 function actualizarEstado(mensaje) {
     const el = document.getElementById('estado-sistema');
@@ -23,6 +24,23 @@ async function cargarDatos() {
         const data = await response.json();
         
         console.log('📊 Datos recibidos:', data);
+        
+        // NUEVO: Verificar que los nodos tengan grupos actualizados
+        if (data.nodes) {
+            console.log('📋 Verificando grupos en los nodos recibidos...');
+            const nodosConGrupos = data.nodes.filter(nodo => nodo.grupo && nodo.grupo !== 'sin_grupo');
+            console.log(`🏷️ ${nodosConGrupos.length} de ${data.nodes.length} nodos tienen grupos asignados`);
+            
+            if (nodosConGrupos.length > 0) {
+                console.log('📊 Distribución de grupos recibida:');
+                const distribucion = {};
+                nodosConGrupos.forEach(nodo => {
+                    distribucion[nodo.grupo] = (distribucion[nodo.grupo] || 0) + 1;
+                });
+                console.table(distribucion);
+            }
+        }
+        
         actualizarEstado(`✅ ${data.nodes.length} contactos, ${data.edges.length} conexiones`);
         
         // Actualizar estadísticas
@@ -191,9 +209,6 @@ async function inicializarRed() {
         // ✅ AGREGAR SISTEMA DE POSICIONES AQUÍ
         configurarPosiciones();
 
-        // Variable para controlar si ya se mostró el mensaje de éxito
-        let redLista = false;
-
         // Función para marcar la red como lista
         function marcarRedLista() {
             if (!redLista) {
@@ -202,49 +217,101 @@ async function inicializarRed() {
                 actualizarEstado('✅ Red funcionando');
                 setTimeout(() => actualizarEstado('Sistema listo'), 2000);
                 
-                // Configurar funcionalidades adicionales
+                console.log('🎯 Red marcada como lista, configurando funcionalidades...');
+                
+                // NUEVA FUNCIONALIDAD: Configurar doble clic para crear nodos
                 if (typeof configurarDobleClickCrearNodo === 'function') {
                     configurarDobleClickCrearNodo();
                     console.log('🎯 Funcionalidad de doble clic para crear nodos activada');
                 }
                 
+                // NUEVA FUNCIONALIDAD: Configurar hover para crear aristas
                 if (typeof configurarHoverCrearAristas === 'function') {
                     configurarHoverCrearAristas();
                     console.log('🔗 Funcionalidad de hover para crear aristas activada');
                 }
                 
-                // Activar sistema de burbujas automáticamente
-                setTimeout(() => {
-                    if (typeof crearBurbujasGrupos === 'function') {
-                        console.log('🫧 Activando sistema de burbujas automáticamente...');
+                // FUNCIONALIDAD MEJORADA: Sincronizar grupos y activar burbujas de forma robusta
+                setTimeout(async () => {
+                    console.log('🔄 Iniciando configuración avanzada de grupos y burbujas...');
+                    
+                    try {
+                        // 1. Sincronizar grupos del servidor primero
+                        if (typeof sincronizarGruposAlCargar === 'function') {
+                            console.log('🔄 Sincronizando grupos con servidor...');
+                            await sincronizarGruposAlCargar();
+                            console.log('✅ Grupos sincronizados con servidor');
+                        }
                         
+                        // 2. Verificar si hay nodos con grupos después de la sincronización
                         if (nodes && nodes.length > 0) {
                             const nodosConGrupos = nodes.get().filter(nodo => nodo.grupo && nodo.grupo !== 'sin_grupo');
+                            console.log(`📊 Después de sincronización: ${nodosConGrupos.length} nodos tienen grupos`);
                             
+                            if (nodosConGrupos.length > 0) {
+                                // 3. Activar sistema de burbujas
+                                console.log('🫧 Activando sistema de burbujas...');
+                                
+                                // Asegurar que las burbujas estén activadas
+                                if (typeof burbujasActivas !== 'undefined') {
+                                    window.burbujasActivas = true;
+                                }
+                                
+                                // 4. Crear burbujas
+                                if (typeof crearBurbujasGrupos === 'function') {
+                                    crearBurbujasGrupos();
+                                    console.log(`✅ Burbujas activadas para ${nodosConGrupos.length} nodos con grupos`);
+                                    
+                                    // 5. Configurar eventos de burbujas después de crearlas
+                                    setTimeout(() => {
+                                        if (typeof configurarEventosBurbujas === 'function') {
+                                            configurarEventosBurbujas();
+                                            console.log('⚡ Eventos de burbujas configurados');
+                                        }
+                                        
+                                        // 6. Aplicar mejoras de rendimiento de zoom
+                                        if (typeof aplicarMejorasZoom === 'function') {
+                                            aplicarMejorasZoom();
+                                            console.log('⚡ Mejoras de zoom aplicadas');
+                                        }
+                                        
+                                        console.log('🎉 ¡Sistema completamente configurado con todas las funcionalidades!');
+                                        
+                                    }, 500);
+                                    
+                                } else {
+                                    console.warn('⚠️ Función crearBurbujasGrupos no disponible');
+                                }
+                            } else {
+                                console.log('📝 No hay grupos asignados, las burbujas se activarán cuando se asignen grupos');
+                            }
+                        } else {
+                            console.log('⚠️ No hay nodos disponibles para configurar grupos');
+                        }
+                        
+                    } catch (error) {
+                        console.error('❌ Error en configuración avanzada:', error);
+                        console.log('🔄 Continuando con configuración básica...');
+                        
+                        // Fallback: intentar solo crear burbujas sin sincronización
+                        if (typeof crearBurbujasGrupos === 'function' && nodes && nodes.length > 0) {
+                            const nodosConGrupos = nodes.get().filter(nodo => nodo.grupo && nodo.grupo !== 'sin_grupo');
                             if (nodosConGrupos.length > 0) {
                                 if (typeof burbujasActivas !== 'undefined') {
                                     window.burbujasActivas = true;
                                 }
                                 crearBurbujasGrupos();
-                                console.log('✅ Burbujas activadas automáticamente');
-                            } else {
-                                console.log('📝 No hay grupos asignados, las burbujas se activarán cuando se asignen grupos');
+                                console.log('✅ Burbujas creadas en modo fallback');
                             }
                         }
                     }
-                }, 1000);
+                    
+                }, 1500); // Esperar 1.5 segundos para que todo esté estabilizado
             }
         }
         
-        // Eventos
-        network.on("click", function (params) {
-            if (params.nodes.length > 0) {
-                const nodeId = params.nodes[0];
-                const node = nodes.get(nodeId);
-                const label = node.label ? node.label.replace(/<[^>]*>/g, '').trim() : 'Sin nombre';
-                alert(`📊 Información del contacto:\n\n${label}\n\nGrupo: ${node.group || 'Sin grupo'}\nID: ${node.id}`);
-            }
-        });
+        // *** EVENTOS DE RED - SOLO BÁSICOS SIN ALERT ***
+        // El sistema de modal se encargará de los clicks
         
         network.on("hoverNode", function () {
             document.body.style.cursor = 'pointer';
@@ -453,8 +520,6 @@ function randomizePositions() {
 }
 
 // Función CORREGIDA para recargar datos - reemplazar en index.js
-// Esta función debe reemplazar la función recargarDatos existente
-
 async function recargarDatos() {
     console.log('🔄 Iniciando recarga completa del sistema...');
     actualizarEstado('🔄 Recargando sistema completo...');
@@ -592,6 +657,9 @@ async function recargarDatos() {
         network = new vis.Network(container, { nodes, edges }, options);
         console.log('✅ Nueva instancia de red creada');
         
+        // Reset variable de control
+        redLista = false;
+        
         // 5. RECONFIGURAR TODOS LOS EVENTOS Y SISTEMAS
         let redCompletamenteLista = false;
         
@@ -619,6 +687,12 @@ async function recargarDatos() {
                     if (typeof configurarHoverCrearAristas === 'function') {
                         configurarHoverCrearAristas();
                         console.log('🔗 Funcionalidad de hover para aristas reconfigurada');
+                    }
+                    
+                    // IMPORTANTE: Reconfigurar el sistema de modal para clicks
+                    if (typeof reemplazarClickEnRed === 'function') {
+                        reemplazarClickEnRed();
+                        console.log('📊 Sistema de modal reconfigurado');
                     }
                     
                     // 7. SINCRONIZAR GRUPOS Y RECREAR BURBUJAS
@@ -666,7 +740,9 @@ async function recargarDatos() {
                                         }
                                         
                                         console.log('🎉 ¡Recarga completa exitosa con todas las funcionalidades!');
-                                        mostrarNotificacion('success', '¡Red recargada completamente! Todas las funcionalidades están activas.');
+                                        if (typeof mostrarNotificacion === 'function') {
+                                            mostrarNotificacion('success', '¡Red recargada completamente! Todas las funcionalidades están activas.');
+                                        }
                                         
                                         // Estado final
                                         setTimeout(() => {
@@ -693,16 +769,7 @@ async function recargarDatos() {
             }
         }
         
-        // Configurar eventos básicos de la red INMEDIATAMENTE
-        network.on("click", function (params) {
-            if (params.nodes.length > 0) {
-                const nodeId = params.nodes[0];
-                const node = nodes.get(nodeId);
-                const label = node.label ? node.label.replace(/<[^>]*>/g, '').trim() : 'Sin nombre';
-                alert(`📊 Información del contacto:\n\n${label}\n\nGrupo: ${node.grupo || 'Sin grupo'}\nID: ${node.id}`);
-            }
-        });
-        
+        // Configurar eventos básicos de la red INMEDIATAMENTE (SIN ALERT)
         network.on("hoverNode", function () {
             document.body.style.cursor = 'pointer';
         });
@@ -725,189 +792,9 @@ async function recargarDatos() {
     } catch (error) {
         console.error('❌ Error durante la recarga:', error);
         actualizarEstado(`❌ Error en recarga: ${error.message}`);
-        mostrarNotificacion('error', `Error recargando: ${error.message}`);
-    }
-}
-
-// Función auxiliar para verificar que todo esté funcionando después de la recarga
-window.verificarSistemaPostRecarga = function() {
-    console.log('🔍 VERIFICACIÓN POST-RECARGA:');
-    console.log('=============================');
-    
-    // Verificar red principal
-    console.log('📊 Red:', typeof network !== 'undefined' && network ? '✅ Funcionando' : '❌ Error');
-    console.log('👥 Nodos:', typeof nodes !== 'undefined' && nodes ? `✅ ${nodes.length} nodos` : '❌ Error');
-    console.log('🔗 Aristas:', typeof edges !== 'undefined' && edges ? `✅ ${edges.length} aristas` : '❌ Error');
-    
-    // Verificar funcionalidades adicionales
-    console.log('🎯 Creación nodos:', typeof configurarDobleClickCrearNodo === 'function' ? '✅ Disponible' : '❌ No disponible');
-    console.log('🔗 Creación aristas:', typeof configurarHoverCrearAristas === 'function' ? '✅ Disponible' : '❌ No disponible');
-    
-    // Verificar sistema de burbujas
-    console.log('🫧 Sistema burbujas:', typeof crearBurbujasGrupos === 'function' ? '✅ Disponible' : '❌ No disponible');
-    console.log('🫧 Burbujas activas:', typeof burbujasActivas !== 'undefined' ? (burbujasActivas ? '✅ Activadas' : '⚠️ Desactivadas') : '❌ No definido');
-    
-    // Verificar burbujas en DOM
-    const container = document.getElementById('network');
-    const svg = container?.querySelector('.burbujas-svg');
-    const burbujas = svg?.querySelectorAll('.burbuja-grupo');
-    console.log('🖼️ Burbujas en DOM:', burbujas ? `✅ ${burbujas.length} encontradas` : '❌ No encontradas');
-    
-    // Verificar eventos de zoom
-    if (network) {
-        console.log('📏 Zoom actual:', network.getScale().toFixed(2));
-        const viewPos = network.getViewPosition();
-        console.log('📍 Posición vista:', `(${viewPos.x.toFixed(1)}, ${viewPos.y.toFixed(1)})`);
-    }
-    
-    console.log('=============================');
-    
-    // Test rápido de zoom si hay burbujas
-    if (burbujas && burbujas.length > 0) {
-        console.log('🧪 Realizando test rápido de zoom...');
-        const zoomOriginal = network.getScale();
-        
-        network.moveTo({ 
-            scale: zoomOriginal * 1.5, 
-            animation: { duration: 500 }
-        });
-        
-        setTimeout(() => {
-            network.moveTo({ 
-                scale: zoomOriginal, 
-                animation: { duration: 500 }
-            });
-            console.log('✅ Test de zoom completado');
-        }, 1000);
-    }
-};
-
-// Función para test completo de funcionalidades después de recarga
-window.testCompletoPostRecarga = function() {
-    console.log('🧪 INICIANDO TEST COMPLETO POST-RECARGA...');
-    
-    setTimeout(() => {
-        verificarSistemaPostRecarga();
-        
-        // Test de creación de grupos si hay nodos suficientes
-        if (nodes && nodes.length >= 4) {
-            console.log('🧪 Probando creación de grupos demo...');
-            if (typeof crearGruposDemo === 'function') {
-                crearGruposDemo();
-                
-                setTimeout(() => {
-                    console.log('🧪 Probando zoom con burbujas...');
-                    if (typeof testZoomOptimizado === 'function') {
-                        testZoomOptimizado();
-                    }
-                }, 2000);
-            }
+        if (typeof mostrarNotificacion === 'function') {
+            mostrarNotificacion('error', `Error recargando: ${error.message}`);
         }
-    }, 1000);
-};
-
-console.log('🔄 Función de recarga corregida cargada');
-
-// Función para ajustar el tamaño de la red cuando cambia la ventana
-function ajustarTamanoRed() {
-    if (network) {
-        network.redraw();
-        setTimeout(() => {
-            network.fit();
-        }, 100);
-    }
-}
-
-// Agregar esta función mejorada para recargar datos al archivo index.js
-// Reemplazar la función cargarDatos existente con esta versión mejorada
-
-async function cargarDatos() {
-    try {
-        actualizarEstado('Cargando datos...');
-        
-        const response = await fetch('/api/grafo');
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        
-        console.log('📊 Datos recibidos:', data);
-        
-        // NUEVO: Verificar que los nodos tengan grupos actualizados
-        if (data.nodes) {
-            console.log('📋 Verificando grupos en los nodos recibidos...');
-            const nodosConGrupos = data.nodes.filter(nodo => nodo.grupo && nodo.grupo !== 'sin_grupo');
-            console.log(`🏷️ ${nodosConGrupos.length} de ${data.nodes.length} nodos tienen grupos asignados`);
-            
-            if (nodosConGrupos.length > 0) {
-                console.log('📊 Distribución de grupos recibida:');
-                const distribucion = {};
-                nodosConGrupos.forEach(nodo => {
-                    distribucion[nodo.grupo] = (distribucion[nodo.grupo] || 0) + 1;
-                });
-                console.table(distribucion);
-            }
-        }
-        
-        actualizarEstado(`✅ ${data.nodes.length} contactos, ${data.edges.length} conexiones`);
-        
-        // Actualizar estadísticas
-        document.getElementById('total-personas').textContent = data.nodes.length;
-        document.getElementById('total-conexiones').textContent = data.edges.length;
-        
-        // Calcular densidad
-        const totalNodos = data.nodes.length;
-        const maxPosiblesConexiones = totalNodos > 1 ? (totalNodos * (totalNodos - 1)) / 2 : 0;
-        const densidad = maxPosiblesConexiones > 0 ? ((data.edges.length / maxPosiblesConexiones) * 100).toFixed(1) : 0;
-        document.getElementById('densidad-red').textContent = densidad + '%';
-        
-        // Calcular persona más conectada
-        let personaMasConectada = 'Ninguna';
-        if (data.nodes.length > 0) {
-            const conteoConexiones = {};
-            
-            // Inicializar conteo
-            data.nodes.forEach(node => {
-                conteoConexiones[node.id] = 0;
-            });
-            
-            // Contar conexiones
-            data.edges.forEach(edge => {
-                if (conteoConexiones.hasOwnProperty(edge.from)) {
-                    conteoConexiones[edge.from]++;
-                }
-                if (conteoConexiones.hasOwnProperty(edge.to)) {
-                    conteoConexiones[edge.to]++;
-                }
-            });
-            
-            // Encontrar el más conectado
-            let maxConexiones = 0;
-            let nodeIdMasConectado = null;
-            
-            for (const [nodeId, conexiones] of Object.entries(conteoConexiones)) {
-                if (conexiones > maxConexiones) {
-                    maxConexiones = conexiones;
-                    nodeIdMasConectado = nodeId;
-                }
-            }
-            
-            if (nodeIdMasConectado) {
-                const nodeMasConectado = data.nodes.find(node => node.id == nodeIdMasConectado);
-                if (nodeMasConectado && nodeMasConectado.label) {
-                    personaMasConectada = nodeMasConectado.label.replace(/<[^>]*>/g, '').trim();
-                }
-            }
-        }
-        
-        document.getElementById('mas-conectado').textContent = personaMasConectada;
-        
-        return data;
-    } catch (error) {
-        console.error('❌ Error cargando datos:', error);
-        actualizarEstado(`❌ Error: ${error.message}`);
-        return { nodes: [], edges: [] };
     }
 }
 
@@ -1000,110 +887,17 @@ async function recargarSoloDatos() {
     }
 }
 
-// Función CORREGIDA marcarRedLista - reemplazar en index.js
-// Esta función debe reemplazar la función marcarRedLista existente
-
-function marcarRedLista() {
-    if (!redLista) {
-        redLista = true;
-        network.fit();
-        actualizarEstado('✅ Red funcionando');
-        setTimeout(() => actualizarEstado('Sistema listo'), 2000);
-        
-        console.log('🎯 Red marcada como lista, configurando funcionalidades...');
-        
-        // NUEVA FUNCIONALIDAD: Configurar doble clic para crear nodos
-        if (typeof configurarDobleClickCrearNodo === 'function') {
-            configurarDobleClickCrearNodo();
-            console.log('🎯 Funcionalidad de doble clic para crear nodos activada');
-        }
-        
-        // NUEVA FUNCIONALIDAD: Configurar hover para crear aristas
-        if (typeof configurarHoverCrearAristas === 'function') {
-            configurarHoverCrearAristas();
-            console.log('🔗 Funcionalidad de hover para crear aristas activada');
-        }
-        
-        // FUNCIONALIDAD MEJORADA: Sincronizar grupos y activar burbujas de forma robusta
-        setTimeout(async () => {
-            console.log('🔄 Iniciando configuración avanzada de grupos y burbujas...');
-            
-            try {
-                // 1. Sincronizar grupos del servidor primero
-                if (typeof sincronizarGruposAlCargar === 'function') {
-                    console.log('🔄 Sincronizando grupos con servidor...');
-                    await sincronizarGruposAlCargar();
-                    console.log('✅ Grupos sincronizados con servidor');
-                }
-                
-                // 2. Verificar si hay nodos con grupos después de la sincronización
-                if (nodes && nodes.length > 0) {
-                    const nodosConGrupos = nodes.get().filter(nodo => nodo.grupo && nodo.grupo !== 'sin_grupo');
-                    console.log(`📊 Después de sincronización: ${nodosConGrupos.length} nodos tienen grupos`);
-                    
-                    if (nodosConGrupos.length > 0) {
-                        // 3. Activar sistema de burbujas
-                        console.log('🫧 Activando sistema de burbujas...');
-                        
-                        // Asegurar que las burbujas estén activadas
-                        if (typeof burbujasActivas !== 'undefined') {
-                            window.burbujasActivas = true;
-                        }
-                        
-                        // 4. Crear burbujas
-                        if (typeof crearBurbujasGrupos === 'function') {
-                            crearBurbujasGrupos();
-                            console.log(`✅ Burbujas activadas para ${nodosConGrupos.length} nodos con grupos`);
-                            
-                            // 5. Configurar eventos de burbujas después de crearlas
-                            setTimeout(() => {
-                                if (typeof configurarEventosBurbujas === 'function') {
-                                    configurarEventosBurbujas();
-                                    console.log('⚡ Eventos de burbujas configurados');
-                                }
-                                
-                                // 6. Aplicar mejoras de rendimiento de zoom
-                                if (typeof aplicarMejorasZoom === 'function') {
-                                    aplicarMejorasZoom();
-                                    console.log('⚡ Mejoras de zoom aplicadas');
-                                }
-                                
-                                console.log('🎉 ¡Sistema completamente configurado con todas las funcionalidades!');
-                                
-                            }, 500);
-                            
-                        } else {
-                            console.warn('⚠️ Función crearBurbujasGrupos no disponible');
-                        }
-                    } else {
-                        console.log('📝 No hay grupos asignados, las burbujas se activarán cuando se asignen grupos');
-                    }
-                } else {
-                    console.log('⚠️ No hay nodos disponibles para configurar grupos');
-                }
-                
-            } catch (error) {
-                console.error('❌ Error en configuración avanzada:', error);
-                console.log('🔄 Continuando con configuración básica...');
-                
-                // Fallback: intentar solo crear burbujas sin sincronización
-                if (typeof crearBurbujasGrupos === 'function' && nodes && nodes.length > 0) {
-                    const nodosConGrupos = nodes.get().filter(nodo => nodo.grupo && nodo.grupo !== 'sin_grupo');
-                    if (nodosConGrupos.length > 0) {
-                        if (typeof burbujasActivas !== 'undefined') {
-                            window.burbujasActivas = true;
-                        }
-                        crearBurbujasGrupos();
-                        console.log('✅ Burbujas creadas en modo fallback');
-                    }
-                }
-            }
-            
-        }, 1500); // Esperar 1.5 segundos para que todo esté estabilizado
+// Función para ajustar el tamaño de la red cuando cambia la ventana
+function ajustarTamanoRed() {
+    if (network) {
+        network.redraw();
+        setTimeout(() => {
+            network.fit();
+        }, 100);
     }
 }
 
-// Función auxiliar para verificar el estado del sistema
+// Función auxiliara para verificar el estado del sistema
 window.verificarEstadoSistema = function() {
     console.log('🔍 ESTADO ACTUAL DEL SISTEMA:');
     console.log('============================');
@@ -1116,6 +910,7 @@ window.verificarEstadoSistema = function() {
     // Verificar funcionalidades
     console.log('🎯 Doble clic:', typeof configurarDobleClickCrearNodo === 'function' ? '✅ Configurado' : '❌ No disponible');
     console.log('🔗 Hover aristas:', typeof configurarHoverCrearAristas === 'function' ? '✅ Configurado' : '❌ No disponible');
+    console.log('📊 Modal información:', typeof mostrarInformacionNodo === 'function' ? '✅ Disponible' : '❌ No disponible');
     console.log('🫧 Burbujas:', typeof crearBurbujasGrupos === 'function' ? '✅ Disponible' : '❌ No disponible');
     console.log('💾 Persistencia:', typeof sincronizarGruposAlCargar === 'function' ? '✅ Disponible' : '❌ No disponible');
     
@@ -1151,7 +946,59 @@ window.verificarEstadoSistema = function() {
     }
 };
 
-console.log('🎯 Función marcarRedLista corregida cargada');
+// Función auxiliar para verificar que todo esté funcionando después de la recarga
+window.verificarSistemaPostRecarga = function() {
+    console.log('🔍 VERIFICACIÓN POST-RECARGA:');
+    console.log('=============================');
+    
+    // Verificar red principal
+    console.log('📊 Red:', typeof network !== 'undefined' && network ? '✅ Funcionando' : '❌ Error');
+    console.log('👥 Nodos:', typeof nodes !== 'undefined' && nodes ? `✅ ${nodes.length} nodos` : '❌ Error');
+    console.log('🔗 Aristas:', typeof edges !== 'undefined' && edges ? `✅ ${edges.length} aristas` : '❌ Error');
+    
+    // Verificar funcionalidades adicionales
+    console.log('🎯 Creación nodos:', typeof configurarDobleClickCrearNodo === 'function' ? '✅ Disponible' : '❌ No disponible');
+    console.log('🔗 Creación aristas:', typeof configurarHoverCrearAristas === 'function' ? '✅ Disponible' : '❌ No disponible');
+    console.log('📊 Modal información:', typeof mostrarInformacionNodo === 'function' ? '✅ Disponible' : '❌ No disponible');
+    
+    // Verificar sistema de burbujas
+    console.log('🫧 Sistema burbujas:', typeof crearBurbujasGrupos === 'function' ? '✅ Disponible' : '❌ No disponible');
+    console.log('🫧 Burbujas activas:', typeof burbujasActivas !== 'undefined' ? (burbujasActivas ? '✅ Activadas' : '⚠️ Desactivadas') : '❌ No definido');
+    
+    // Verificar burbujas en DOM
+    const container = document.getElementById('network');
+    const svg = container?.querySelector('.burbujas-svg');
+    const burbujas = svg?.querySelectorAll('.burbuja-grupo');
+    console.log('🖼️ Burbujas en DOM:', burbujas ? `✅ ${burbujas.length} encontradas` : '❌ No encontradas');
+    
+    // Verificar eventos de zoom
+    if (network) {
+        console.log('📏 Zoom actual:', network.getScale().toFixed(2));
+        const viewPos = network.getViewPosition();
+        console.log('📍 Posición vista:', `(${viewPos.x.toFixed(1)}, ${viewPos.y.toFixed(1)})`);
+    }
+    
+    console.log('=============================');
+    
+    // Test rápido de zoom si hay burbujas
+    if (burbujas && burbujas.length > 0) {
+        console.log('🧪 Realizando test rápido de zoom...');
+        const zoomOriginal = network.getScale();
+        
+        network.moveTo({ 
+            scale: zoomOriginal * 1.5, 
+            animation: { duration: 500 }
+        });
+        
+        setTimeout(() => {
+            network.moveTo({ 
+                scale: zoomOriginal, 
+                animation: { duration: 500 }
+            });
+            console.log('✅ Test de zoom completado');
+        }, 1000);
+    }
+};
 
 // Inicializar cuando se carga la página
 document.addEventListener('DOMContentLoaded', function() {

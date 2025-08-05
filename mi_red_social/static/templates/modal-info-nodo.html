@@ -1,0 +1,398 @@
+<!-- static/templates/modal-info-nodo.html -->
+<div class="modal fade" id="modalInfoNodo" tabindex="-1" aria-labelledby="modalInfoNodoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalInfoNodoLabel">
+                    <i class="icon icon-user"></i>
+                    <span id="tituloPersona">Información de la Persona</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Información básica de la persona -->
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <div class="card" style="border: 2px solid #e2e8f0;">
+                            <div class="card-body text-center">
+                                <div class="d-flex align-items-center justify-content-center mb-3">
+                                    <div id="nodoColor" class="node-color-display me-3"></div>
+                                    <div>
+                                        <h4 id="nombrePersona" class="mb-1">Nombre de la Persona</h4>
+                                        <span id="grupoPersona" class="badge bg-secondary">Grupo</span>
+                                    </div>
+                                </div>
+                                <p id="descripcionPersona" class="text-muted mb-0">Descripción de la persona</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Estadísticas de conexiones -->
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="stats-card stats-card-compact text-center">
+                            <h4 id="totalConexiones">0</h4>
+                            <p class="mb-0">
+                                <i class="icon icon-connections icon-white"></i>
+                                Conexiones
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stats-card stats-card-compact text-center">
+                            <h4 id="conexionesFuertes">0</h4>
+                            <p class="mb-0">
+                                <i class="icon icon-crown icon-white"></i>
+                                Fuertes (8+)
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stats-card stats-card-compact text-center">
+                            <h4 id="centralidad">0</h4>
+                            <p class="mb-0">
+                                <i class="icon icon-target icon-white"></i>
+                                Centralidad
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lista de relaciones -->
+                <div class="row">
+                    <div class="col-12">
+                        <h6 class="mb-3">
+                            <i class="icon icon-link"></i>
+                            Relaciones (<span id="numeroRelaciones">0</span>)
+                        </h6>
+                        <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                            <table class="table table-striped table-hover">
+                                <thead class="table-dark sticky-top">
+                                    <tr>
+                                        <th>Persona</th>
+                                        <th>Tipo</th>
+                                        <th>Fortaleza</th>
+                                        <th>Contexto</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablaRelaciones">
+                                    <!-- Se llenará dinámicamente -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="sinRelaciones" class="text-center py-4" style="display: none;">
+                            <p class="text-muted">
+                                <i class="icon icon-info"></i>
+                                Esta persona no tiene relaciones registradas
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Análisis de grupos (si aplica) -->
+                <div class="row mt-4" id="seccionAnalisisGrupos" style="display: none;">
+                    <div class="col-12">
+                        <h6 class="mb-3">
+                            <i class="icon icon-chart"></i>
+                            Análisis de Grupo
+                        </h6>
+                        <div class="alert alert-info">
+                            <div id="analisisGrupoTexto">
+                                <!-- Se llenará dinámicamente -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gráfico de fortaleza de relaciones -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <h6 class="mb-3">
+                            <i class="icon icon-chart"></i>
+                            Distribución de Fortaleza de Relaciones
+                        </h6>
+                        <div class="row">
+                            <div class="col-3 text-center">
+                                <div class="strength-bar">
+                                    <div class="strength-fill bg-secondary" id="barraDebil" style="height: 0%;"></div>
+                                </div>
+                                <small class="text-muted">Débil (1-3)</small>
+                                <div><strong id="conteoDebil">0</strong></div>
+                            </div>
+                            <div class="col-3 text-center">
+                                <div class="strength-bar">
+                                    <div class="strength-fill bg-info" id="barraNormal" style="height: 0%;"></div>
+                                </div>
+                                <small class="text-muted">Normal (4-6)</small>
+                                <div><strong id="conteoNormal">0</strong></div>
+                            </div>
+                            <div class="col-3 text-center">
+                                <div class="strength-bar">
+                                    <div class="strength-fill bg-warning" id="barraFuerte" style="height: 0%;"></div>
+                                </div>
+                                <small class="text-muted">Fuerte (7-8)</small>
+                                <div><strong id="conteoFuerte">0</strong></div>
+                            </div>
+                            <div class="col-3 text-center">
+                                <div class="strength-bar">
+                                    <div class="strength-fill bg-success" id="barraMuyFuerte" style="height: 0%;"></div>
+                                </div>
+                                <small class="text-muted">Muy Fuerte (9-10)</small>
+                                <div><strong id="conteoMuyFuerte">0</strong></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-info btn-custom" id="btnEnfocarNodo">
+                    <i class="icon icon-target icon-white"></i>
+                    Enfocar en Grafo
+                </button>
+                <button type="button" class="btn btn-warning btn-custom" id="btnEditarNodo">
+                    <i class="icon icon-settings icon-white"></i>
+                    Editar Información
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="icon icon-close"></i>
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Estilos específicos para el modal de información -->
+<style>
+/* Estilos para la visualización del color del nodo */
+.node-color-display {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 3px solid white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    display: inline-block;
+}
+
+/* Estilos para las barras de fortaleza */
+.strength-bar {
+    width: 100%;
+    height: 100px;
+    background-color: #e2e8f0;
+    border-radius: 4px;
+    position: relative;
+    margin-bottom: 8px;
+    overflow: hidden;
+}
+
+.strength-fill {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    transition: height 0.6s ease-in-out;
+    border-radius: 0 0 4px 4px;
+}
+
+/* Animaciones para las barras */
+@keyframes fillBar {
+    0% { height: 0%; }
+    100% { height: var(--target-height); }
+}
+
+.strength-fill.animate {
+    animation: fillBar 0.6s ease-in-out forwards;
+}
+
+/* Estilos para las tarjetas de estadísticas en el modal */
+.stats-card.stats-card-compact {
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-md);
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    box-shadow: var(--shadow-md);
+    border: none;
+}
+
+.stats-card.stats-card-compact h4 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: var(--spacing-xs);
+}
+
+.stats-card.stats-card-compact p {
+    font-size: 0.8rem;
+    font-weight: 500;
+    margin-bottom: 0;
+}
+
+/* Estilos para la tabla de relaciones */
+.table-responsive {
+    border-radius: var(--border-radius-md);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.table {
+    margin-bottom: 0;
+}
+
+.table thead th {
+    border-bottom: 2px solid var(--gray-300);
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.table tbody td {
+    vertical-align: middle;
+    padding: var(--spacing-md);
+}
+
+/* Badge personalizado para fortaleza */
+.badge-fortaleza {
+    font-size: 0.75rem;
+    padding: 0.4rem 0.6rem;
+    border-radius: var(--border-radius-sm);
+    font-weight: 600;
+}
+
+.badge-fortaleza.debil {
+    background: linear-gradient(135deg, var(--gray-500), var(--gray-600));
+    color: white;
+}
+
+.badge-fortaleza.normal {
+    background: linear-gradient(135deg, var(--accent-color), #0891b2);
+    color: white;
+}
+
+.badge-fortaleza.fuerte {
+    background: linear-gradient(135deg, var(--warning-color), #d97706);
+    color: white;
+}
+
+.badge-fortaleza.muy-fuerte {
+    background: linear-gradient(135deg, var(--success-color), #059669);
+    color: white;
+}
+
+/* Efecto hover en filas de la tabla */
+.table tbody tr:hover {
+    background-color: var(--gray-50);
+    transform: scale(1.01);
+    transition: all 0.2s ease;
+}
+
+/* Estilos para el análisis de grupos */
+.alert.alert-info {
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(14, 165, 233, 0.1));
+    border: 1px solid rgba(6, 182, 212, 0.2);
+    border-left: 4px solid var(--accent-color);
+    color: var(--gray-800);
+}
+
+/* Estilos responsivos */
+@media (max-width: 768px) {
+    .modal-dialog {
+        margin: 0.5rem;
+        max-width: calc(100vw - 1rem);
+    }
+    
+    .stats-card.stats-card-compact h4 {
+        font-size: 1.2rem;
+    }
+    
+    .strength-bar {
+        height: 60px;
+    }
+    
+    .table-responsive {
+        font-size: 0.85rem;
+    }
+}
+
+/* Animaciones para el modal */
+.modal.fade .modal-dialog {
+    transform: translate(0, -50px);
+    transition: transform 0.3s ease-out;
+}
+
+.modal.show .modal-dialog {
+    transform: translate(0, 0);
+}
+
+/* Efecto de enfoque en botones */
+.btn-custom:focus {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.2);
+}
+
+/* Loading state para el contenido del modal */
+.modal-loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+}
+
+.modal-loading .spinner-border {
+    width: 3rem;
+    height: 3rem;
+    color: var(--primary-color);
+}
+
+/* Estilos para conexiones destacadas */
+.conexion-destacada {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
+    border-left: 3px solid var(--success-color);
+}
+
+/* Tooltip personalizado para información adicional */
+.custom-tooltip {
+    position: relative;
+    cursor: help;
+}
+
+.custom-tooltip::before {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 125%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 1000;
+}
+
+.custom-tooltip:hover::before {
+    opacity: 1;
+}
+
+/* Icono de carga para datos que se están procesando */
+.data-loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+</style>
