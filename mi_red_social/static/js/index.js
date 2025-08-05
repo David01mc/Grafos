@@ -192,6 +192,8 @@ async function inicializarRed() {
         // Crear la red
         network = new vis.Network(container, { nodes, edges }, options);
         
+        configurarPosiciones();
+
         // Variable para controlar si ya se mostró el mensaje de éxito
         let redLista = false;
 

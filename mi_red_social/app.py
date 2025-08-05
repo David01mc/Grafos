@@ -31,6 +31,8 @@ def init_db():
             grupo TEXT DEFAULT 'contactos',
             color TEXT DEFAULT '#3b82f6',
             descripcion TEXT,
+            posicion_x REAL,
+            posicion_y REAL,
             fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
@@ -368,6 +370,33 @@ def debug():
     }
     
     return jsonify(debug_info)
+
+# Agregar al final de app.py
+
+@app.route('/guardar_posiciones', methods=['POST'])
+def guardar_posiciones():
+    data = request.get_json()
+    posiciones = data.get('posiciones', {})
+    
+    conn = get_db_connection()
+    for node_id, pos in posiciones.items():
+        conn.execute('UPDATE personas SET posicion_x = ?, posicion_y = ? WHERE id = ?', 
+                    (pos['x'], pos['y'], node_id))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'success': True, 'guardadas': len(posiciones)})
+
+@app.route('/obtener_posiciones', methods=['GET'])
+def obtener_posiciones():
+    conn = get_db_connection()
+    personas = conn.execute('SELECT id, posicion_x, posicion_y FROM personas WHERE posicion_x IS NOT NULL').fetchall()
+    conn.close()
+    
+    posiciones = {p['id']: {'x': p['posicion_x'], 'y': p['posicion_y']} for p in personas}
+    return jsonify({'posiciones': posiciones})
+
+# Modificar init_db() - agregar posicion_x REAL, posicion_y REAL a la tabla personas
 
 if __name__ == '__main__':
     # Eliminar base de datos anterior si existe
