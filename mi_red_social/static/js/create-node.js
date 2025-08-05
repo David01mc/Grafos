@@ -67,11 +67,6 @@ function limpiarModalAnterior() {
         // Eliminar el modal del DOM
         modalExistente.remove();
         
-        // Restaurar el scroll del body (por si quedó bloqueado)
-        document.body.classList.remove('modal-open');
-        document.body.style.overflow = '';
-        document.body.style.paddingRight = '';
-        
         console.log('✅ Modal anterior limpiado completamente');
     }
     
