@@ -184,7 +184,7 @@
 
 .burbuja-grupo {
     /* Reemplazar animaciones que puedan causar overflow */
-    animation: safe-pulse 4s ease-in-out infinite !important;
+    animation: none !important;
 }
 
 /* ========== MEJORAS PARA TOOLTIPS Y INFORMACIÓN ADICIONAL ========== */

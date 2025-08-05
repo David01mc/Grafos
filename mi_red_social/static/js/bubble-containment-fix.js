@@ -545,82 +545,6 @@ function detectarOverflowBurbujas() {
     return elementosOverflow;
 }
 
-/**
- * Corrige elementos que se salen del contenedor
- */
-function corregirOverflowBurbujas() {
-    const elementosOverflow = detectarOverflowBurbujas();
-    
-    if (elementosOverflow.length > 0) {
-        console.log(`🔧 Corrigiendo ${elementosOverflow.length} burbujas que se salen del contenedor...`);
-        
-        elementosOverflow.forEach(item => {
-            const { elemento, grupo, overflow } = item;
-            
-            // Reducir tamaño si es necesario
-            if (elemento.tagName === 'circle') {
-                const radio = parseFloat(elemento.getAttribute('r'));
-                const nuevoRadio = Math.max(20, radio * 0.8);
-                elemento.setAttribute('r', nuevoRadio);
-                console.log(`📏 Radio reducido para ${grupo}: ${radio} → ${nuevoRadio}`);
-                
-            } else if (elemento.tagName === 'ellipse') {
-                const rx = parseFloat(elemento.getAttribute('rx'));
-                const ry = parseFloat(elemento.getAttribute('ry'));
-                const nuevoRx = Math.max(30, rx * 0.8);
-                const nuevoRy = Math.max(20, ry * 0.8);
-                elemento.setAttribute('rx', nuevoRx);
-                elemento.setAttribute('ry', nuevoRy);
-                console.log(`📏 Tamaño reducido para ${grupo}: ${rx}x${ry} → ${nuevoRx}x${nuevoRy}`);
-            }
-        });
-        
-        return true;
-    }
-    
-    return false;
-}
-
-// ========== MONITOREO Y AJUSTE AUTOMÁTICO ==========
-
-/**
- * Inicia el monitoreo automático de contención
- */
-function iniciarMonitoreoContencion() {
-    let ultimaVerificacion = 0;
-    
-    function verificarContencion() {
-        const ahora = performance.now();
-        
-        // Throttling: verificar máximo cada 2 segundos
-        if (ahora - ultimaVerificacion < 2000) return;
-        ultimaVerificacion = ahora;
-        
-        const overflow = detectarOverflowBurbujas();
-        
-        if (overflow.length > 0) {
-            console.log(`⚠️ Detectado overflow en ${overflow.length} burbujas, corrigiendo...`);
-            const corregido = corregirOverflowBurbujas();
-            
-            if (corregido) {
-                // Aplicar transformación para asegurar contención
-                setTimeout(aplicarTransformacionContenida, 100);
-            }
-        }
-    }
-    
-    // Verificar en eventos de cambio
-    if (network) {
-        network.on('zoom', verificarContencion);
-        network.on('dragEnd', verificarContencion);
-    }
-    
-    // Verificación periódica
-    setInterval(verificarContencion, 5000);
-    
-    console.log('👁️ Monitoreo de contención iniciado');
-}
-
 // ========== UTILIDADES DE REDIMENSIONAMIENTO ==========
 
 /**
@@ -860,7 +784,6 @@ if (document.readyState === 'loading') {
 window.crearBurbujasGruposContenidas = crearBurbujasGruposContenidas;
 window.aplicarTransformacionContenida = aplicarTransformacionContenida;
 window.detectarOverflowBurbujas = detectarOverflowBurbujas;
-window.corregirOverflowBurbujas = corregirOverflowBurbujas;
 window.obtenerDimensionesContenedor = obtenerDimensionesContenedor;
 
 console.log('📦 Sistema de contención de burbujas cargado completamente');
