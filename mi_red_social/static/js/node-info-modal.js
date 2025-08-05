@@ -111,7 +111,21 @@ async function mostrarInformacionNodo(nodeId) {
             });
         }
         
+        // Antes de mostrar el modal
+        const scrollY = window.scrollY;
+        document.body.style.position = 'fixed';
+        document.body.style.top = `-${scrollY}px`;
+        document.body.style.width = '100%';
+
         modalInfoNodo.show();
+
+        // Cuando se cierre el modal
+        modalElement.addEventListener('hidden.bs.modal', function() {
+            document.body.style.position = '';
+            document.body.style.top = '';
+            document.body.style.width = '';
+            window.scrollTo(0, scrollY);
+        });
         
         console.log('✅ Modal de información mostrado correctamente');
         
