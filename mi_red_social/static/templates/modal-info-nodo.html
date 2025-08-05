@@ -395,4 +395,27 @@
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+
+/* Prevenir scroll automático en modales */
+.modal.fade.show {
+    overflow-y: auto !important;
+}
+
+.modal-open {
+    overflow: hidden !important;
+    padding-right: 0 !important;
+}
+
+/* Asegurar que el modal mantenga la posición */
+.modal-dialog {
+    margin: 1.75rem auto !important;
+    max-height: calc(100vh - 3.5rem) !important;
+}
+
+/* Prevenir que el body haga scroll cuando se abre el modal */
+body.modal-open {
+    position: fixed !important;
+    width: 100% !important;
+    overflow-y: scroll !important;
+}
 </style>
