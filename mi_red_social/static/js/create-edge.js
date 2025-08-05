@@ -69,11 +69,7 @@ function limpiarModalRelacionAnterior() {
         
         modalExistente.remove();
         
-        document.body.classList.remove('modal-open');
-        document.body.style.overflow = '';
-        document.body.style.paddingRight = '';
-        
-        console.log('✅ Modal de relación anterior limpiado completamente');
+
     }
     
     modalCrearRelacion = null;
