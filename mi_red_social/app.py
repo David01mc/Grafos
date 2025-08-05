@@ -120,11 +120,11 @@ def admin():
 
 @app.route('/api/grafo')
 def api_grafo():
-    """API que devuelve los datos del grafo en formato JSON - VERSIÓN CORREGIDA CON GRUPOS"""
+    """API que devuelve los datos del grafo en formato JSON - CON POSICIONES"""
     try:
         conn = get_db_connection()
         
-        # Obtener personas CON GRUPOS
+        # Obtener personas CON GRUPOS Y POSICIONES
         personas = conn.execute('SELECT * FROM personas').fetchall()
         
         # Obtener relaciones
@@ -137,22 +137,28 @@ def api_grafo():
         
         conn.close()
         
-        # Formatear datos para vis.js - INCLUYENDO GRUPOS
+        # Formatear datos para vis.js - INCLUYENDO GRUPOS Y POSICIONES
         nodes = []
         for persona in personas:
             size = 50 if 'Usuario Principal' in persona['nombre'] else 30
-            # Solo usar el nombre, sin iconos
             label = persona['nombre']
             
-            # IMPORTANTE: Incluir el grupo en los datos del nodo
             node_data = {
                 'id': persona['id'],
                 'label': label,
                 'color': persona['color'],
                 'size': size,
                 'title': f"<b>{persona['nombre']}</b><br>{persona['descripcion'] or 'Sin descripción'}<br>Grupo: {persona['grupo'] or 'Sin grupo'}",
-                'grupo': persona['grupo']  # ESTO ES CRUCIAL - incluir el grupo
+                'grupo': persona['grupo']
             }
+            
+            # ✅ AGREGAR POSICIONES SI EXISTEN
+            if persona['posicion_x'] is not None and persona['posicion_y'] is not None:
+                node_data['x'] = float(persona['posicion_x'])
+                node_data['y'] = float(persona['posicion_y'])
+                node_data['physics'] = False
+            else:
+                node_data['physics'] = True
             
             nodes.append(node_data)
         
@@ -170,21 +176,14 @@ def api_grafo():
         
         resultado = {'nodes': nodes, 'edges': edges}
         
-        # Debug: mostrar distribución de grupos
-        grupos_debug = {}
-        for node in nodes:
-            grupo = node.get('grupo') or 'sin_grupo'
-            grupos_debug[grupo] = grupos_debug.get(grupo, 0) + 1
-        
         print(f"🔍 API devolviendo: {len(nodes)} nodos, {len(edges)} conexiones")
-        print(f"📊 Distribución de grupos: {grupos_debug}")
         
         return jsonify(resultado)
         
     except Exception as e:
         print(f"❌ Error en API: {e}")
         return jsonify({'error': str(e), 'nodes': [], 'edges': []}), 500
-
+    
 @app.route('/agregar_persona', methods=['POST'])
 def agregar_persona():
     """Formulario para agregar nueva persona"""

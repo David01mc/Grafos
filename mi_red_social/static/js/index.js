@@ -133,7 +133,6 @@ async function inicializarRed() {
             interaction: {
                 hover: true,
                 tooltipDelay: 300,
-                // REMOVIDO: hideEdgesOnDrag: true, <-- Esta era la causa del problema
                 selectConnectedEdges: false,
                 dragNodes: true,
                 dragView: true,
@@ -152,7 +151,6 @@ async function inicializarRed() {
                     strokeColor: 'white'
                 },
                 width: 2,
-                // Asegurar que las aristas se mantengan visibles
                 color: {
                     color: '#848484',
                     highlight: '#848484',
@@ -174,7 +172,6 @@ async function inicializarRed() {
                     strokeWidth: 2,
                     strokeColor: 'rgba(0,0,0,0.6)'
                 },
-                // Mejorar la interacción de los nodos
                 chosen: {
                     node: function(values, id, selected, hovering) {
                         values.shadow = true;
@@ -183,7 +180,6 @@ async function inicializarRed() {
                     }
                 }
             },
-            // Configuración adicional para mejorar el rendimiento durante el arrastre
             configure: {
                 enabled: false
             }
@@ -192,6 +188,7 @@ async function inicializarRed() {
         // Crear la red
         network = new vis.Network(container, { nodes, edges }, options);
         
+        // ✅ AGREGAR SISTEMA DE POSICIONES AQUÍ
         configurarPosiciones();
 
         // Variable para controlar si ya se mostró el mensaje de éxito
@@ -205,29 +202,26 @@ async function inicializarRed() {
                 actualizarEstado('✅ Red funcionando');
                 setTimeout(() => actualizarEstado('Sistema listo'), 2000);
                 
-                // NUEVA FUNCIONALIDAD: Configurar doble clic para crear nodos
+                // Configurar funcionalidades adicionales
                 if (typeof configurarDobleClickCrearNodo === 'function') {
                     configurarDobleClickCrearNodo();
                     console.log('🎯 Funcionalidad de doble clic para crear nodos activada');
                 }
                 
-                // NUEVA FUNCIONALIDAD: Configurar hover para crear aristas
                 if (typeof configurarHoverCrearAristas === 'function') {
                     configurarHoverCrearAristas();
                     console.log('🔗 Funcionalidad de hover para crear aristas activada');
                 }
                 
-                // NUEVA FUNCIONALIDAD: Activar sistema de burbujas automáticamente
+                // Activar sistema de burbujas automáticamente
                 setTimeout(() => {
                     if (typeof crearBurbujasGrupos === 'function') {
                         console.log('🫧 Activando sistema de burbujas automáticamente...');
                         
-                        // Verificar si hay nodos con grupos asignados
                         if (nodes && nodes.length > 0) {
                             const nodosConGrupos = nodes.get().filter(nodo => nodo.grupo && nodo.grupo !== 'sin_grupo');
                             
                             if (nodosConGrupos.length > 0) {
-                                // Activar burbujas si hay grupos
                                 if (typeof burbujasActivas !== 'undefined') {
                                     window.burbujasActivas = true;
                                 }
@@ -238,10 +232,11 @@ async function inicializarRed() {
                             }
                         }
                     }
-                }, 1000); // Esperar 1 segundo para que todo esté estabilizado
+                }, 1000);
             }
         }
-        // Eventos mejorados
+        
+        // Eventos
         network.on("click", function (params) {
             if (params.nodes.length > 0) {
                 const nodeId = params.nodes[0];
@@ -259,7 +254,6 @@ async function inicializarRed() {
             document.body.style.cursor = 'default';
         });
         
-        // Eventos específicos para el arrastre
         network.on("dragStart", function (params) {
             if (params.nodes.length > 0) {
                 document.body.style.cursor = 'grabbing';
@@ -269,8 +263,7 @@ async function inicializarRed() {
         
         network.on("dragging", function (params) {
             if (params.nodes.length > 0) {
-                // Durante el arrastre, podemos añadir efectos visuales si queremos
-                // Las aristas ahora permanecerán visibles
+                // Durante el arrastre, las aristas permanecerán visibles
             }
         });
         
@@ -305,6 +298,77 @@ async function inicializarRed() {
         console.error('❌ Error inicializando red:', error);
         actualizarEstado(`❌ Error: ${error.message}`);
     }
+}
+
+// ✅ FUNCIONES DE POSICIONES - AGREGAR AL FINAL DE index.js
+let timeoutPosiciones = null;
+
+async function guardarPosiciones() {
+    if (!network || !nodes) return;
+    
+    const posiciones = {};
+    const pos = network.getPositions();
+    
+    nodes.forEach(nodo => {
+        if (pos[nodo.id]) {
+            posiciones[nodo.id] = {
+                x: Math.round(pos[nodo.id].x),
+                y: Math.round(pos[nodo.id].y)
+            };
+        }
+    });
+    
+    try {
+        await fetch('/guardar_posiciones', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({posiciones})
+        });
+        console.log('📍 Posiciones guardadas');
+    } catch (error) {
+        console.error('Error guardando posiciones:', error);
+    }
+}
+
+async function cargarPosiciones() {
+    try {
+        const response = await fetch('/obtener_posiciones');
+        const data = await response.json();
+        
+        if (data.posiciones && Object.keys(data.posiciones).length > 0) {
+            const updates = [];
+            Object.entries(data.posiciones).forEach(([id, pos]) => {
+                updates.push({id: parseInt(id), x: pos.x, y: pos.y, physics: false});
+            });
+            
+            nodes.update(updates);
+            console.log('📍 Posiciones cargadas:', updates.length);
+            
+            // Reactivar física después de 1 segundo
+            setTimeout(() => {
+                const reactivar = updates.map(u => ({id: u.id, physics: true}));
+                nodes.update(reactivar);
+            }, 1000);
+        }
+    } catch (error) {
+        console.error('Error cargando posiciones:', error);
+    }
+}
+
+function configurarPosiciones() {
+    if (!network) return;
+    
+    network.on('dragEnd', function(params) {
+        if (params.nodes.length > 0) {
+            clearTimeout(timeoutPosiciones);
+            timeoutPosiciones = setTimeout(guardarPosiciones, 2000);
+        }
+    });
+    
+    // Cargar posiciones al iniciar
+    setTimeout(cargarPosiciones, 2000);
+    
+    console.log('📍 Sistema de posiciones configurado');
 }
 
 function centrarRed() {
