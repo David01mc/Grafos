@@ -73,25 +73,6 @@
                         </button>
                     </div>
                     
-                    <!-- Fila 2: Controles de grupos y burbujas -->
-                    <div class="controls-row">
-                        <button class="btn btn-outline-primary btn-custom btn-sm me-2" onclick="toggleBurbujas()">
-                            <i class="icon icon-chart icon-sm"></i>
-                            Mostrar Grupos
-                        </button>
-                        <button class="btn btn-outline-success btn-custom btn-sm me-2" onclick="abrirModalGestionGrupos()">
-                            <i class="icon icon-settings icon-sm"></i>
-                            Gestionar Grupos
-                        </button>
-                        <button class="btn btn-outline-info btn-custom btn-sm me-2" onclick="mostrarEstadisticasGruposModal()">
-                            <i class="icon icon-chart icon-sm"></i>
-                            Stats Grupos
-                        </button>
-                        <button class="btn btn-outline-secondary btn-custom btn-sm" onclick="diagnosticoCompletoSistema()">
-                            <i class="icon icon-settings icon-sm"></i>
-                            Debug Sistema
-                        </button>
-                    </div>
                 </div>
                 
                 <!-- Instrucciones de uso -->
@@ -139,10 +120,6 @@
 <script src="{{ url_for('static', filename='js/create-node.js') }}"></script>
 <!-- Incluir el nuevo archivo JavaScript para creación de aristas -->
 <script src="{{ url_for('static', filename='js/create-edge.js') }}"></script>
-<!-- Incluir el sistema de burbujas de grupos CORREGIDO -->
-<script src="{{ url_for('static', filename='js/group-bubbles.js') }}"></script>
-<!-- Incluir el sistema de gestión de grupos -->
-<script src="{{ url_for('static', filename='js/group-management.js') }}"></script>
 <!-- Incluir las correcciones de accesibilidad -->
 <script src="{{ url_for('static', filename='js/accessibility-fixes.js') }}"></script>
 <!-- Incluir la corrección específica para aria-hidden -->
