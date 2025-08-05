@@ -903,3 +903,15 @@ body {
     transform: scale(1.1);
     transition: transform 0.3s ease;
 }
+
+/* Prevenir scroll automático en modales */
+body.modal-open {
+    padding-right: 0 !important;
+    overflow: hidden !important;
+    position: fixed !important;
+    width: 100% !important;
+}
+
+.modal {
+    padding-right: 0 !important;
+}
