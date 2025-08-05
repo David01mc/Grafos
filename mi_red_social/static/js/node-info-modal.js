@@ -671,3 +671,250 @@ if (document.readyState === 'loading') {
 }
 
 console.log('📊 Sistema de modal de información del nodo cargado');
+
+// SOLUCIÓN PARA EL PROBLEMA DE SCROLL AUTOMÁTICO EN MODALES
+// Agregar este código al final de static/js/node-info-modal.js
+
+// Variables para manejar la posición del scroll
+let scrollPosition = 0;
+
+// Función mejorada para prevenir el scroll automático del modal
+function prevenir_scroll_modal() {
+    // Guardar la posición actual del scroll antes de abrir el modal
+    scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
+    
+    // Fijar el body con la posición actual
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollPosition}px`;
+    document.body.style.width = '100%';
+    document.body.style.overflow = 'hidden';
+}
+
+// Función para restaurar el scroll cuando se cierra el modal
+function restaurar_scroll_modal() {
+    // Restaurar el estilo del body
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.width = '';
+    document.body.style.overflow = '';
+    
+    // Restaurar la posición del scroll
+    window.scrollTo(0, scrollPosition);
+}
+
+// MEJORAR LA FUNCIÓN mostrarInformacionNodo existente
+// Reemplazar la función existente con esta versión corregida:
+
+async function mostrarInformacionNodo(nodeId) {
+    console.log('📊 Mostrando información del nodo:', nodeId);
+    
+    try {
+        // Verificar que el sistema esté listo
+        if (!nodes || !edges) {
+            console.error('❌ Sistema de red no disponible');
+            mostrarNotificacion('error', 'Sistema no disponible. Intenta recargar la página.');
+            return;
+        }
+        
+        // Cargar template del modal
+        const templateCargado = await cargarTemplateModalInfo();
+        if (!templateCargado) {
+            mostrarNotificacion('error', 'Error cargando la interfaz de información');
+            return;
+        }
+        
+        // Obtener información del nodo
+        const nodo = nodes.get(nodeId);
+        if (!nodo) {
+            console.error('❌ Nodo no encontrado:', nodeId);
+            mostrarNotificacion('error', 'Contacto no encontrado');
+            return;
+        }
+        
+        // Obtener todas las relaciones del nodo
+        const todasLasRelaciones = edges.get();
+        const relacionesNodo = todasLasRelaciones.filter(edge => 
+            edge.from === nodeId || edge.to === nodeId
+        );
+        
+        console.log(`📊 Nodo encontrado: ${nodo.label}, ${relacionesNodo.length} relaciones`);
+        
+        // Guardar referencia al nodo actual
+        nodoActualInfo = nodo;
+        
+        // Llenar información básica
+        llenarInformacionBasica(nodo);
+        
+        // Llenar estadísticas
+        llenarEstadisticas(nodo, relacionesNodo);
+        
+        // Llenar tabla de relaciones
+        llenarTablaRelaciones(nodeId, relacionesNodo);
+        
+        // Llenar análisis de grupos (si aplica)
+        llenarAnalisisGrupos(nodo, relacionesNodo);
+        
+        // Llenar gráfico de fortaleza
+        llenarGraficoFortaleza(relacionesNodo);
+        
+        // Configurar eventos del modal
+        configurarEventosModal(nodeId);
+        
+        // Mostrar el modal
+        if (!modalInfoNodo) {
+            modalInfoNodo = new bootstrap.Modal(document.getElementById('modalInfoNodo'), {
+                backdrop: 'static',
+                keyboard: true
+            });
+        }
+        
+        // SOLUCIÓN PRINCIPAL: Prevenir scroll automático
+        const modalElement = document.getElementById('modalInfoNodo');
+        
+        // Configurar eventos ANTES de mostrar el modal
+        modalElement.addEventListener('show.bs.modal', function() {
+            console.log('🔒 Previniendo scroll automático...');
+            prevenir_scroll_modal();
+        });
+        
+        modalElement.addEventListener('shown.bs.modal', function() {
+            console.log('✅ Modal mostrado sin scroll automático');
+            // Enfocar primer elemento si es necesario
+            const tipoInput = document.getElementById('tipoRelacion');
+            if (tipoInput) {
+                tipoInput.focus();
+            }
+        });
+        
+        modalElement.addEventListener('hidden.bs.modal', function() {
+            console.log('🔓 Restaurando scroll original...');
+            restaurar_scroll_modal();
+            
+            // Limpiar modal después de un breve delay
+            setTimeout(() => {
+                limpiarModalRelacionAnterior();
+            }, 100);
+        });
+        
+        // Mostrar modal
+        modalInfoNodo.show();
+        
+        console.log('✅ Modal de información mostrado correctamente SIN scroll automático');
+        
+    } catch (error) {
+        console.error('❌ Error mostrando información del nodo:', error);
+        mostrarNotificacion('error', 'Error al cargar la información del contacto');
+    }
+}
+
+// TAMBIÉN APLICAR A LA FUNCIÓN abrirModalCrearRelacion en create-edge.js
+// Agregar este código al static/js/create-edge.js:
+
+// Función CORREGIDA para abrir modal de crear relación SIN scroll automático
+async function abrirModalCrearRelacion(nodoOrigen, nodoDestino) {
+    console.log('🔄 Iniciando apertura de modal de relación SIN scroll...');
+    
+    // Limpiar modal anterior
+    limpiarModalRelacionAnterior();
+    console.log('✅ Modal anterior limpiado');
+    
+    // Cargar template
+    console.log('🔄 Cargando template del modal...');
+    const modalHTML = await cargarTemplateRelacion();
+    console.log('✅ Template cargado, longitud:', modalHTML.length);
+    
+    // Agregar modal al DOM
+    console.log('🔄 Agregando modal al DOM...');
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    console.log('✅ Modal agregado al DOM');
+    
+    // Verificar que el modal se creó correctamente
+    const modalElement = document.getElementById('modalCrearRelacion');
+    if (!modalElement) {
+        console.error('❌ Error: No se pudo crear el modal de relación');
+        mostrarNotificacion('error', 'Error creando el formulario de relación');
+        return false;
+    }
+    console.log('✅ Elemento modal encontrado:', modalElement);
+    
+    // Verificar que Bootstrap está disponible
+    if (typeof bootstrap === 'undefined') {
+        console.error('❌ Error: Bootstrap no está disponible');
+        mostrarNotificacion('error', 'Error: Bootstrap no disponible');
+        return false;
+    }
+    console.log('✅ Bootstrap confirmado disponible');
+    
+    // Inicializar modal de Bootstrap
+    console.log('🔄 Inicializando modal de Bootstrap...');
+    try {
+        modalCrearRelacion = new bootstrap.Modal(modalElement, {
+            backdrop: 'static',
+            keyboard: true
+        });
+        console.log('✅ Modal de Bootstrap inicializado');
+    } catch (error) {
+        console.error('❌ Error inicializando modal de Bootstrap:', error);
+        mostrarNotificacion('error', 'Error inicializando modal: ' + error.message);
+        return false;
+    }
+    
+    // Configurar contenido del modal
+    console.log('🔄 Configurando contenido del modal...');
+    configurarContenidoModalRelacion(nodoOrigen, nodoDestino);
+    console.log('✅ Contenido del modal configurado');
+    
+    // SOLUCIÓN: Configurar eventos para prevenir scroll ANTES de mostrar
+    modalElement.addEventListener('show.bs.modal', function() {
+        console.log('🔒 Previniendo scroll automático en modal de relación...');
+        prevenir_scroll_modal();
+    });
+    
+    modalElement.addEventListener('shown.bs.modal', function() {
+        console.log('✅ Modal de relación mostrado correctamente SIN scroll');
+        const tipoInput = document.getElementById('tipoRelacion');
+        if (tipoInput) {
+            tipoInput.focus();
+        }
+    });
+    
+    // Limpiar al cerrar modal
+    modalElement.addEventListener('hidden.bs.modal', function() {
+        console.log('🔓 Restaurando scroll después de cerrar modal de relación...');
+        restaurar_scroll_modal();
+        
+        setTimeout(() => {
+            limpiarModalRelacionAnterior();
+        }, 100);
+    });
+    
+    // Mostrar modal
+    console.log('🔄 Intentando mostrar modal SIN scroll automático...');
+    try {
+        modalCrearRelacion.show();
+        console.log('✅ Comando show() ejecutado correctamente SIN scroll');
+        
+        // Verificar si el modal se está mostrando después de un pequeño delay
+        setTimeout(() => {
+            const isShowing = modalElement.classList.contains('show');
+            console.log('🔍 ¿Modal visible después de 500ms?', isShowing);
+            if (!isShowing) {
+                console.warn('⚠️ El modal no parece estar visible, intentando forzar...');
+                // Intentar forzar la visualización
+                modalElement.style.display = 'block';
+                modalElement.classList.add('show');
+                document.body.classList.add('modal-open');
+                console.log('🔧 Forzando visualización del modal');
+            }
+        }, 500);
+        
+    } catch (error) {
+        console.error('❌ Error mostrando modal de relación:', error);
+        restaurar_scroll_modal(); // Restaurar scroll en caso de error
+        limpiarModalRelacionAnterior();
+        mostrarNotificacion('error', 'Error al mostrar el formulario de relación: ' + error.message);
+        return false;
+    }
+    
+    return true;
+}
