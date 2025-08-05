@@ -156,7 +156,7 @@ def api_grafo():
             if persona['posicion_x'] is not None and persona['posicion_y'] is not None:
                 node_data['x'] = float(persona['posicion_x'])
                 node_data['y'] = float(persona['posicion_y'])
-                node_data['physics'] = False
+                node_data['physics'] = True
             else:
                 node_data['physics'] = True
             
