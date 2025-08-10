@@ -445,7 +445,386 @@ def posiciones():
         conn.close()
 
 
-# Modificar init_db() - agregar posicion_x REAL, posicion_y REAL a la tabla personas
+# Modificaciones necesarias para app.py - Sistema de Imágenes
+# AGREGAR estas modificaciones al archivo app.py existente
+
+import os
+import uuid
+from werkzeug.utils import secure_filename
+from PIL import Image
+from flask import request, jsonify
+
+# === CONFIGURACIÓN DE IMÁGENES ===
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+IMAGE_SIZE = (150, 150)  # Tamaño estándar para nodos
+IMAGES_FOLDER = 'static/images/users'
+
+def allowed_file(filename):
+    """Verificar si el archivo tiene una extensión permitida"""
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def create_images_directory():
+    """Crear directorio de imágenes si no existe"""
+    images_path = os.path.join(app.root_path, IMAGES_FOLDER)
+    os.makedirs(images_path, exist_ok=True)
+    return images_path
+
+def resize_and_crop_image(image, size=IMAGE_SIZE):
+    """Redimensionar y recortar imagen para hacerla circular"""
+    # Convertir a RGB si es necesario
+    if image.mode in ('RGBA', 'LA', 'P'):
+        background = Image.new('RGB', image.size, (255, 255, 255))
+        if image.mode == 'P':
+            image = image.convert('RGBA')
+        background.paste(image, mask=image.split()[-1] if image.mode == 'RGBA' else None)
+        image = background
+    
+    # Redimensionar manteniendo aspecto
+    image.thumbnail(size, Image.Resampling.LANCZOS)
+    
+    # Crear imagen cuadrada con relleno si es necesario
+    if image.size != size:
+        background = Image.new('RGB', size, (255, 255, 255))
+        offset = ((size[0] - image.size[0]) // 2, (size[1] - image.size[1]) // 2)
+        background.paste(image, offset)
+        image = background
+    
+    return image
+
+def save_image_file(file, persona_id):
+    """Guardar archivo de imagen procesado"""
+    if not file or not allowed_file(file.filename):
+        return None, "Tipo de archivo no permitido"
+    
+    try:
+        # Verificar tamaño del archivo
+        file.seek(0, os.SEEK_END)
+        file_size = file.tell()
+        file.seek(0)
+        
+        if file_size > MAX_FILE_SIZE:
+            return None, f"Archivo demasiado grande. Máximo {MAX_FILE_SIZE // (1024*1024)}MB"
+        
+        # Crear directorio si no existe
+        images_path = create_images_directory()
+        
+        # Generar nombre único para el archivo
+        file_extension = secure_filename(file.filename).rsplit('.', 1)[1].lower()
+        filename = f"user_{persona_id}_{uuid.uuid4().hex[:8]}.{file_extension}"
+        filepath = os.path.join(images_path, filename)
+        
+        # Procesar imagen
+        image = Image.open(file.stream)
+        processed_image = resize_and_crop_image(image)
+        
+        # Guardar imagen procesada
+        processed_image.save(filepath, quality=85, optimize=True)
+        
+        # Retornar ruta relativa para la base de datos
+        relative_path = f"{IMAGES_FOLDER}/{filename}"
+        return relative_path, None
+        
+    except Exception as e:
+        return None, f"Error procesando imagen: {str(e)}"
+
+def delete_image_file(image_path):
+    """Eliminar archivo de imagen"""
+    if not image_path:
+        return True
+    
+    try:
+        full_path = os.path.join(app.root_path, image_path)
+        if os.path.exists(full_path):
+            os.remove(full_path)
+        return True
+    except Exception as e:
+        print(f"Error eliminando imagen: {e}")
+        return False
+
+# === MODIFICAR LA FUNCIÓN init_db() EXISTENTE ===
+# Agregar esto al final de la función init_db() existente:
+
+def agregar_soporte_imagenes_db():
+    """Agregar soporte para imágenes a la base de datos existente"""
+    conn = sqlite3.connect(DATABASE)
+    cursor = conn.cursor()
+    
+    # Verificar si la columna imagen_url existe
+    cursor.execute("PRAGMA table_info(personas)")
+    columns = [column[1] for column in cursor.fetchall()]
+    
+    if 'imagen_url' not in columns:
+        print("➕ Agregando columna imagen_url a la tabla personas...")
+        cursor.execute('ALTER TABLE personas ADD COLUMN imagen_url TEXT')
+        conn.commit()
+        print("✅ Columna imagen_url agregada exitosamente")
+    else:
+        print("✅ La columna imagen_url ya existe")
+    
+    conn.close()
+    
+    # Crear directorio de imágenes
+    create_images_directory()
+    print("✅ Directorio de imágenes configurado")
+
+# === NUEVAS RUTAS PARA MANEJO DE IMÁGENES ===
+
+@app.route('/subir_imagen/<int:persona_id>', methods=['POST'])
+def subir_imagen(persona_id):
+    """Subir imagen para una persona"""
+    try:
+        # Verificar que la persona existe
+        conn = get_db_connection()
+        persona = conn.execute('SELECT * FROM personas WHERE id = ?', (persona_id,)).fetchone()
+        
+        if not persona:
+            conn.close()
+            return jsonify({'error': 'Persona no encontrada'}), 404
+        
+        # Verificar que se envió un archivo
+        if 'imagen' not in request.files:
+            conn.close()
+            return jsonify({'error': 'No se envió ningún archivo'}), 400
+        
+        file = request.files['imagen']
+        if file.filename == '':
+            conn.close()
+            return jsonify({'error': 'No se seleccionó ningún archivo'}), 400
+        
+        # Eliminar imagen anterior si existe
+        if persona['imagen_url']:
+            delete_image_file(persona['imagen_url'])
+        
+        # Guardar nueva imagen
+        image_path, error = save_image_file(file, persona_id)
+        
+        if error:
+            conn.close()
+            return jsonify({'error': error}), 400
+        
+        # Actualizar base de datos
+        conn.execute(
+            'UPDATE personas SET imagen_url = ? WHERE id = ?',
+            (image_path, persona_id)
+        )
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Imagen subida exitosamente',
+            'imagen_url': image_path,
+            'persona_id': persona_id
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Error interno: {str(e)}'}), 500
+
+@app.route('/eliminar_imagen/<int:persona_id>', methods=['DELETE'])
+def eliminar_imagen(persona_id):
+    """Eliminar imagen de una persona"""
+    try:
+        conn = get_db_connection()
+        persona = conn.execute('SELECT * FROM personas WHERE id = ?', (persona_id,)).fetchone()
+        
+        if not persona:
+            conn.close()
+            return jsonify({'error': 'Persona no encontrada'}), 404
+        
+        # Eliminar archivo de imagen
+        if persona['imagen_url']:
+            delete_image_file(persona['imagen_url'])
+        
+        # Actualizar base de datos
+        conn.execute(
+            'UPDATE personas SET imagen_url = NULL WHERE id = ?',
+            (persona_id,)
+        )
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Imagen eliminada exitosamente',
+            'persona_id': persona_id
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Error interno: {str(e)}'}), 500
+
+@app.route('/obtener_imagenes', methods=['GET'])
+def obtener_imagenes():
+    """Obtener todas las URLs de imágenes"""
+    try:
+        conn = get_db_connection()
+        personas = conn.execute(
+            'SELECT id, nombre, imagen_url FROM personas WHERE imagen_url IS NOT NULL'
+        ).fetchall()
+        conn.close()
+        
+        imagenes = {}
+        for persona in personas:
+            imagenes[persona['id']] = {
+                'nombre': persona['nombre'],
+                'imagen_url': persona['imagen_url']
+            }
+        
+        return jsonify({
+            'success': True,
+            'imagenes': imagenes
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Error interno: {str(e)}'}), 500
+
+# === MODIFICAR LA RUTA agregar_persona EXISTENTE ===
+# Reemplazar la función existente con esta versión mejorada:
+
+@app.route('/agregar_persona', methods=['POST'])
+def agregar_persona():
+    """Formulario para agregar nueva persona - VERSIÓN CON SOPORTE PARA IMÁGENES"""
+    nombre = request.form['nombre']
+    icono = request.form.get('icono', 'user')
+    grupo = request.form.get('grupo', 'contactos')
+    color = request.form.get('color', '#3b82f6')
+    descripcion = request.form.get('descripcion', '')
+    
+    conn = get_db_connection()
+    try:
+        # Insertar persona y obtener ID
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO personas (nombre, icono, grupo, color, descripcion)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (nombre, icono, grupo, color, descripcion))
+        
+        persona_id = cursor.lastrowid
+        conn.commit()
+        
+        # Si es una petición JSON (desde el modal mejorado), devolver JSON con ID
+        if request.is_json or 'application/json' in request.headers.get('Accept', ''):
+            return jsonify({
+                'success': True,
+                'message': f'Persona "{nombre}" agregada exitosamente',
+                'persona_id': persona_id
+            })
+        else:
+            # Si es desde el formulario HTML tradicional, mantener comportamiento original
+            flash(f'✅ Contacto "{nombre}" agregado exitosamente!')
+            return redirect(url_for('admin'))
+            
+    except sqlite3.IntegrityError:
+        error_msg = f'❌ Ya existe un contacto llamado "{nombre}"'
+        
+        if request.is_json or 'application/json' in request.headers.get('Accept', ''):
+            return jsonify({'error': error_msg}), 400
+        else:
+            flash(error_msg)
+            return redirect(url_for('admin'))
+            
+    except Exception as e:
+        error_msg = f'Error interno: {str(e)}'
+        
+        if request.is_json or 'application/json' in request.headers.get('Accept', ''):
+            return jsonify({'error': error_msg}), 500
+        else:
+            flash(f'❌ {error_msg}')
+            return redirect(url_for('admin'))
+            
+    finally:
+        conn.close()
+
+# === MODIFICAR LA FUNCIÓN api_grafo EXISTENTE ===
+# Actualizar para incluir información de imágenes:
+
+@app.route('/api/grafo')
+def api_grafo():
+    """API que devuelve los datos del grafo en formato JSON - CON IMÁGENES"""
+    try:
+        conn = get_db_connection()
+        
+        # Obtener personas CON IMÁGENES
+        personas = conn.execute('SELECT * FROM personas').fetchall()
+        
+        # Obtener relaciones
+        relaciones = conn.execute('''
+            SELECT r.*, p1.nombre as persona1_nombre, p2.nombre as persona2_nombre
+            FROM relaciones r
+            JOIN personas p1 ON r.persona1_id = p1.id
+            JOIN personas p2 ON r.persona2_id = p2.id
+        ''').fetchall()
+        
+        conn.close()
+        
+        # Formatear datos para vis.js - INCLUYENDO IMÁGENES
+        nodes = []
+        for persona in personas:
+            size = 50 if 'Usuario Principal' in persona['nombre'] else 30
+            label = persona['nombre']
+            
+            node_data = {
+                'id': persona['id'],
+                'label': label,
+                'color': persona['color'],
+                'size': size,
+                'grupo': persona['grupo']
+            }
+            
+            # ✅ AGREGAR SOPORTE PARA IMÁGENES
+            if persona['imagen_url']:
+                node_data['shape'] = 'image'
+                node_data['image'] = persona['imagen_url']
+                node_data['size'] = 150  # Tamaño mayor para nodos con imagen
+                node_data['borderWidth'] = 3
+                node_data['borderWidthSelected'] = 5
+                node_data['color'] = {
+                    'border': persona['color'],
+                    'background': 'white'
+                }
+                node_data['chosen'] = {
+                    'node': "function(values, id, selected, hovering) { values.borderWidth = selected ? 5 : 3; values.shadow = selected || hovering; values.shadowColor = 'rgba(0,0,0,0.3)'; values.shadowSize = selected ? 15 : 10; }"
+                }
+            else:
+                # Nodo sin imagen - estilo tradicional
+                node_data['shape'] = 'dot'
+                node_data['borderWidth'] = 2
+            
+            # ✅ AGREGAR POSICIONES SI EXISTEN
+            if persona['posicion_x'] is not None and persona['posicion_y'] is not None:
+                node_data['x'] = float(persona['posicion_x'])
+                node_data['y'] = float(persona['posicion_y'])
+                node_data['physics'] = True
+            else:
+                node_data['physics'] = True
+            
+            nodes.append(node_data)
+        
+        edges = []
+        for relacion in relaciones:
+            color = '#10b981' if relacion['fortaleza'] >= 8 else '#f59e0b' if relacion['fortaleza'] >= 6 else '#6b7280'
+            edges.append({
+                'from': relacion['persona1_id'],
+                'to': relacion['persona2_id'],
+                'width': relacion['fortaleza'],
+                'color': color,
+                'label': relacion['tipo'].replace('_', ' ').title(),
+                'title': f"<b>{relacion['persona1_nombre']} ↔ {relacion['persona2_nombre']}</b><br>Tipo: {relacion['tipo'].replace('_', ' ').title()}<br>Fortaleza: {relacion['fortaleza']}/10<br>Contexto: {relacion['contexto'] or 'Sin contexto'}"
+            })
+        
+        resultado = {'nodes': nodes, 'edges': edges}
+        
+        print(f"🔍 API devolviendo: {len(nodes)} nodos, {len(edges)} conexiones")
+        
+        return jsonify(resultado)
+        
+    except Exception as e:
+        print(f"❌ Error en API: {e}")
+        return jsonify({'error': str(e), 'nodes': [], 'edges': []}), 500
+
+# === AGREGAR AL FINAL DE LA FUNCIÓN __main__ ===
+# En la parte donde se ejecuta if __name__ == '__main__':
 
 if __name__ == '__main__':
     # Eliminar base de datos anterior si existe
@@ -456,13 +835,47 @@ if __name__ == '__main__':
     # Inicializar base de datos
     init_db()
     
+    # ✅ AGREGAR SOPORTE PARA IMÁGENES
+    agregar_soporte_imagenes_db()
+    
     print("🚀 Iniciando servidor empresarial...")
     print("📊 Base de datos: red_social.db")
     print("🌐 Análisis en: http://localhost:5000")
     print("⚙️ Administración en: http://localhost:5000/admin")
     print("📱 API en: http://localhost:5000/api/grafo")
     print("🔍 Debug en: http://localhost:5000/debug")
+    print("🖼️ Sistema de imágenes: Activado")
     print("🛑 Para detener: Ctrl+C")
     
     # Ejecutar servidor
     app.run(debug=True, port=5000)
+
+# === INSTRUCCIONES DE INSTALACIÓN ===
+"""
+DEPENDENCIAS ADICIONALES REQUERIDAS:
+
+1. Instalar Pillow para procesamiento de imágenes:
+   pip install Pillow
+
+2. Estructura de directorios que se creará automáticamente:
+   mi_red_social/
+   ├── static/
+   │   ├── images/
+   │   │   └── users/          # Aquí se guardarán las imágenes
+   │   ├── js/
+   │   └── css/
+
+3. Permisos:
+   - Asegúrate de que la aplicación tenga permisos de escritura en el directorio static/
+
+4. Configuración de servidor web (si se usa en producción):
+   - Configurar límites de subida de archivos
+   - Configurar servido de archivos estáticos
+
+NOTAS IMPORTANTES:
+- Las imágenes se redimensionan automáticamente a 150x150 píxeles
+- Se mantiene la relación de aspecto y se agrega padding si es necesario
+- Los formatos soportados son: JPG, PNG, GIF, WebP
+- Tamaño máximo por imagen: 5MB
+- Las imágenes antiguas se eliminan automáticamente al subir nuevas
+"""
