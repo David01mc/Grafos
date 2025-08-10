@@ -52,7 +52,6 @@ function centrarRed() {
     controlesEstado.centrandoVista = true;
     
     try {
-        actualizarEstado('🎯 Centrando vista...', 'info');
         
         estado.network.fit({
             animation: {
@@ -62,13 +61,11 @@ function centrarRed() {
         });
         
         setTimeout(() => {
-            actualizarEstado('✅ Vista centrada', 'success');
             controlesEstado.centrandoVista = false;
             
             // Volver al estado normal después de 2 segundos
             setTimeout(() => {
                 if (estado.redLista) {
-                    actualizarEstado('Sistema listo', 'success');
                 }
             }, 2000);
         }, 800);
@@ -116,7 +113,6 @@ function togglePhysics() {
         if (!controlesEstado.fisicaActivada) {
             setTimeout(() => {
                 if (estado.redLista) {
-                    actualizarEstado('Sistema listo', 'success');
                 }
             }, 2000);
         }
@@ -190,13 +186,11 @@ function randomizePositions() {
             });
             
             setTimeout(() => {
-                actualizarEstado('✅ Red reorganizada', 'success');
                 controlesEstado.reorganizando = false;
                 
                 // Volver al estado normal
                 setTimeout(() => {
                     if (estado.redLista) {
-                        actualizarEstado('Sistema listo', 'success');
                     }
                 }, 2000);
             }, 1000);
@@ -223,7 +217,6 @@ async function recargarDatos() {
     controlesEstado.recargando = true;
     
     try {
-        actualizarEstado('🔄 Recargando sistema...', 'info');
         
         // Verificar estado actual
         const estado = window.obtenerEstadoRed();
@@ -259,7 +252,6 @@ async function recargarDatos() {
         // Reconfigurar funcionalidades después de un delay
         setTimeout(async () => {
             await reconfigurarFuncionalidades();
-            actualizarEstado('✅ Sistema recargado exitosamente', 'success');
             
             if (typeof mostrarNotificacion === 'function') {
                 mostrarNotificacion('success', '¡Sistema recargado! Todas las funcionalidades están activas.');
@@ -286,7 +278,6 @@ async function limpiarSistemasExistentes() {
         // Limpiar burbujas
         if (typeof limpiarBurbujasAnteriores === 'function') {
             limpiarBurbujasAnteriores();
-            console.log('✅ Burbujas limpiadas');
         }
         
         // Limpiar eventos específicos de la red
@@ -302,7 +293,6 @@ async function limpiarSistemasExistentes() {
                         // Ignorar errores de eventos que no existen
                     }
                 });
-                console.log('✅ Eventos de red limpiados');
             } catch (e) {
                 console.log('⚠️ Algunos eventos ya estaban limpiados');
             }
@@ -347,7 +337,6 @@ async function reconfigurarFuncionalidades() {
                 // Sincronizar grupos
                 if (typeof sincronizarGruposAlCargar === 'function') {
                     await sincronizarGruposAlCargar();
-                    console.log('✅ Grupos sincronizados');
                 }
                 
                 // Recrear burbujas si hay grupos
@@ -368,8 +357,7 @@ async function reconfigurarFuncionalidades() {
                         // Crear burbujas
                         if (typeof crearBurbujasGrupos === 'function') {
                             crearBurbujasGrupos();
-                            console.log('✅ Burbujas recreadas');
-                            
+
                             // Configurar eventos de burbujas
                             setTimeout(() => {
                                 if (typeof configurarEventosBurbujas === 'function') {
@@ -387,8 +375,7 @@ async function reconfigurarFuncionalidades() {
                 console.error('❌ Error reconfigurando grupos:', error);
             }
         }, 1500);
-        
-        console.log('✅ Funcionalidades reconfiguradas');
+
         
     } catch (error) {
         console.error('❌ Error reconfigurando funcionalidades:', error);
@@ -502,54 +489,9 @@ function resetearControles() {
     // Reset de vista
     centrarRed();
     
-    console.log('✅ Controles reseteados');
 }
 
-// Función de debug para estado de controles
-window.debugControles = function() {
-    console.log('🎮 ESTADO DE CONTROLES:');
-    console.log('=======================');
-    console.log('Física activada:', controlesEstado.fisicaActivada);
-    console.log('Centrando vista:', controlesEstado.centrandoVista);
-    console.log('Reorganizando:', controlesEstado.reorganizando);
-    console.log('Recargando:', controlesEstado.recargando);
-    
-    const estado = window.obtenerEstadoRed();
-    if (estado.network) {
-        console.log('Escala actual:', estado.network.getScale().toFixed(2));
-        const pos = estado.network.getViewPosition();
-        console.log('Posición vista:', `(${pos.x.toFixed(1)}, ${pos.y.toFixed(1)})`);
-    }
-    console.log('=======================');
-    
-    return controlesEstado;
-};
 
-// Función para obtener información de rendimiento
-window.obtenerInfoRendimiento = function() {
-    const estado = window.obtenerEstadoRed();
-    
-    if (!estado.network || !estado.nodes) {
-        console.log('❌ Red no disponible para análisis de rendimiento');
-        return null;
-    }
-    
-    const info = {
-        nodos: estado.nodes.length,
-        aristas: estado.edges ? estado.edges.length : 0,
-        escala: estado.network.getScale(),
-        fisicaActiva: controlesEstado.fisicaActivada,
-        memoria: performance.memory ? {
-            usado: Math.round(performance.memory.usedJSHeapSize / 1024 / 1024),
-            total: Math.round(performance.memory.totalJSHeapSize / 1024 / 1024)
-        } : 'No disponible'
-    };
-    
-    console.log('📊 INFORMACIÓN DE RENDIMIENTO:');
-    console.table(info);
-    
-    return info;
-};
 
 // Función para obtener estado completo de controles
 window.obtenerEstadoControles = function() {

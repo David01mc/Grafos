@@ -429,21 +429,6 @@ window.exportarDiagnosticos = function() {
     console.log('💾 Diagnósticos exportados');
 };
 
-// Función para mostrar ayuda de diagnósticos
-window.ayudaDiagnosticos = function() {
-    console.log('💡 FUNCIONES DE DIAGNÓSTICO DISPONIBLES:');
-    console.log('========================================');
-    console.log('verificarEstadoSistema() - Diagnóstico completo del sistema');
-    console.log('verificarSistemaPostRecarga() - Verificar después de recarga');
-    console.log('debugAristas() - Analizar estructura de aristas');
-    console.log('iniciarMonitoreoRendimiento(intervalo) - Monitoreo en tiempo real');
-    console.log('detenerMonitoreoRendimiento() - Detener monitoreo');
-    console.log('obtenerReporteRendimiento() - Resumen de rendimiento');
-    console.log('testEstresRed(duracion) - Test de estrés de la red');
-    console.log('exportarDiagnosticos() - Exportar datos de diagnóstico');
-    console.log('limpiarHistorialDiagnosticos() - Limpiar historial');
-    console.log('========================================');
-};
 
 // Limpiar intervalos al cerrar la página
 window.addEventListener('beforeunload', () => {

@@ -120,7 +120,6 @@ async function cargarDatos(forzarRecarga = false) {
     sistemaEstado.error = null;
     
     try {
-        actualizarEstado('Cargando datos del servidor...', 'info');
         
         const response = await fetch('/api/grafo?' + (forzarRecarga ? 'cache=false' : ''));
         
@@ -153,7 +152,6 @@ async function cargarDatos(forzarRecarga = false) {
             console.table(distribucionGrupos);
         }
         
-        actualizarEstado(`✅ ${data.nodes.length} contactos, ${data.edges.length} conexiones`, 'success');
         
         return data;
         
@@ -204,7 +202,6 @@ async function inicializarRed() {
         // Crear la red
         network = new vis.Network(container, { nodes, edges }, CONFIG_RED);
         
-        console.log('✅ Red creada exitosamente');
         
         // Configurar eventos básicos
         configurarEventosBasicos();
@@ -285,7 +282,6 @@ function configurarEstabilizacion() {
         
         // Ajustar vista
         network.fit();
-        actualizarEstado('✅ Red funcionando', 'success');
         
         // Configurar funcionalidades adicionales con delay
         setTimeout(() => {
@@ -325,8 +321,6 @@ async function configurarFuncionalidadesAvanzadas() {
             await configurarSistemaGrupos();
         }, 1000);
         
-        actualizarEstado('Sistema completamente listo', 'success');
-        
     } catch (error) {
         console.error('❌ Error configurando funcionalidades avanzadas:', error);
     }
@@ -340,7 +334,6 @@ async function configurarSistemaGrupos() {
         // Sincronizar grupos del servidor
         if (typeof sincronizarGruposAlCargar === 'function') {
             await sincronizarGruposAlCargar();
-            console.log('✅ Grupos sincronizados');
         }
         
         // Verificar nodos con grupos
@@ -358,7 +351,6 @@ async function configurarSistemaGrupos() {
                 // Crear burbujas
                 if (typeof crearBurbujasGrupos === 'function') {
                     crearBurbujasGrupos();
-                    console.log('✅ Burbujas creadas');
                     
                     // Configurar eventos de burbujas
                     setTimeout(() => {
