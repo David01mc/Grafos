@@ -185,8 +185,6 @@ async function inicializarRed() {
     }
     
     try {
-        actualizarEstado('🎨 Iniciando visualización...', 'info');
-        
         // Cargar datos
         const data = await cargarDatos();
         

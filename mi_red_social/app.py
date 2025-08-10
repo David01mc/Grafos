@@ -148,7 +148,6 @@ def api_grafo():
                 'label': label,
                 'color': persona['color'],
                 'size': size,
-                'title': f"<b>{persona['nombre']}</b><br>{persona['descripcion'] or 'Sin descripción'}<br>Grupo: {persona['grupo'] or 'Sin grupo'}",
                 'grupo': persona['grupo']
             }
             
@@ -386,14 +385,65 @@ def guardar_posiciones():
     
     return jsonify({'success': True, 'guardadas': len(posiciones)})
 
-@app.route('/obtener_posiciones', methods=['GET'])
-def obtener_posiciones():
+@app.route('/obtener_posiciones', methods=['GET', 'POST'])
+def posiciones():
     conn = get_db_connection()
-    personas = conn.execute('SELECT id, posicion_x, posicion_y FROM personas WHERE posicion_x IS NOT NULL').fetchall()
-    conn.close()
-    
-    posiciones = {p['id']: {'x': p['posicion_x'], 'y': p['posicion_y']} for p in personas}
-    return jsonify({'posiciones': posiciones})
+    try:
+        if request.method == 'GET':
+            # ?ids=1,2,3  (opcional). Si no se pasa, devuelve todas las que tengan posición
+            ids_param = request.args.get('ids', '').strip()
+            if ids_param:
+                try:
+                    ids = [int(x) for x in ids_param.split(',') if x.strip().isdigit()]
+                except ValueError:
+                    return jsonify({'error': 'ids inválidos'}), 400
+
+                if not ids:
+                    return jsonify({'posiciones': {}})
+
+                qmarks = ','.join('?' for _ in ids)
+                filas = conn.execute(
+                    f'SELECT id, posicion_x, posicion_y FROM personas WHERE id IN ({qmarks})',
+                    ids
+                ).fetchall()
+            else:
+                filas = conn.execute(
+                    'SELECT id, posicion_x, posicion_y FROM personas WHERE posicion_x IS NOT NULL'
+                ).fetchall()
+
+            posiciones = {
+                f['id']: {'x': f['posicion_x'], 'y': f['posicion_y']}
+                for f in filas if f['posicion_x'] is not None and f['posicion_y'] is not None
+            }
+            return jsonify({'posiciones': posiciones})
+
+        # POST: guarda posiciones parciales o totales
+        data = request.get_json(silent=True) or {}
+        pos = data.get('posiciones', {})
+        if not isinstance(pos, dict) or not pos:
+            return jsonify({'error': 'JSON inválido o vacío'}), 400
+
+        payload = []
+        for node_id, xy in pos.items():
+            try:
+                nid = int(node_id)
+                x = float(xy['x'])
+                y = float(xy['y'])
+                payload.append((x, y, nid))
+            except (ValueError, KeyError, TypeError):
+                continue
+
+        if payload:
+            conn.executemany(
+                'UPDATE personas SET posicion_x = ?, posicion_y = ? WHERE id = ?',
+                payload
+            )
+            conn.commit()
+
+        return jsonify({'success': True, 'guardadas': len(payload)})
+    finally:
+        conn.close()
+
 
 # Modificar init_db() - agregar posicion_x REAL, posicion_y REAL a la tabla personas
 

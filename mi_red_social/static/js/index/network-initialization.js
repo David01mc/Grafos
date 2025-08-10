@@ -188,10 +188,6 @@ function mostrarMensajeBienvenida() {
     console.log('- ayudaDiagnosticos() - Ver todas las funciones de debug');
     console.log('================================');
     
-    // Mostrar notificación visual si está disponible
-    if (typeof mostrarNotificacion === 'function') {
-        mostrarNotificacion('success', '¡Sistema de red social completamente cargado y listo!', 8000);
-    }
 }
 
 // Función para mostrar error de inicialización

@@ -253,9 +253,6 @@ async function recargarDatos() {
         setTimeout(async () => {
             await reconfigurarFuncionalidades();
             
-            if (typeof mostrarNotificacion === 'function') {
-                mostrarNotificacion('success', '¡Sistema recargado! Todas las funcionalidades están activas.');
-            }
         }, 1000);
         
     } catch (error) {
