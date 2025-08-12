@@ -30,16 +30,16 @@
     
     <nav class="navbar navbar-expand-lg navbar-light navbar-custom" role="navigation" aria-label="Navegación principal">
         <div class="container">
-            <a class="navbar-brand" href="{{ url_for('index') }}" aria-label="Ir a la página principal">
+            <a class="navbar-brand" href="{{ url_for('main.index') }}" aria-label="Ir a la página principal">
                 <i class="icon icon-network icon-lg" aria-hidden="true"></i>
                 <strong>Red de Relaciones</strong>
             </a>
             <div class="navbar-nav ms-auto">
-                <a class="nav-link" href="{{ url_for('index') }}" aria-label="Ir al análisis de red">
+                <a class="nav-link" href="{{ url_for('main.index') }}" aria-label="Ir al análisis de red">
                     <i class="icon icon-chart" aria-hidden="true"></i>
                     Análisis
                 </a>
-                <a class="nav-link" href="{{ url_for('admin') }}" aria-label="Ir a la administración">
+                <a class="nav-link" href="{{ url_for('main.admin') }}" aria-label="Ir a la administración">
                     <i class="icon icon-settings" aria-hidden="true"></i>
                     Administración
                 </a>

@@ -1,4 +1,4 @@
-<!-- templates/index.html - VERSIÓN REFACTORIZADA -->
+<!-- templates/index.html - VERSIÓN CORREGIDA -->
 {% extends "base.html" %}
 
 {% block title %}Análisis de Red de Relaciones{% endblock %}
@@ -104,17 +104,21 @@
 <script src="{{ url_for('static', filename='js/integration-layer.js') }}"></script>
 
 <!-- Script de indice refactorizados-->
- <script src="{{ url_for('static', filename='js/index/network-controls.js') }}"></script>
- <script src="{{ url_for('static', filename='js/index/network-core.js') }}"></script>
- <script src="{{ url_for('static', filename='js/index/network-diagnostics.js') }}"></script>
- <script src="{{ url_for('static', filename='js/index/positions-manager.js') }}"></script>
- <script src="{{ url_for('static', filename='js/index/network-initialization.js') }}"></script>
- <script src="{{ url_for('static', filename='js/index/positions-manager-fix.js') }}"></script>
- <script src="{{ url_for('static', filename='js/index/positions-sync-fix.js') }}"></script>
- <script src="{{ url_for('static', filename='js/index/positions-integration-fix.js') }}"></script>
+<script src="{{ url_for('static', filename='js/index/network-controls.js') }}"></script>
+<script src="{{ url_for('static', filename='js/index/network-core.js') }}"></script>
+<script src="{{ url_for('static', filename='js/index/network-diagnostics.js') }}"></script>
+<script src="{{ url_for('static', filename='js/index/positions-manager.js') }}"></script>
+<script src="{{ url_for('static', filename='js/index/network-initialization.js') }}"></script>
+<script src="{{ url_for('static', filename='js/index/positions-manager-fix.js') }}"></script>
+<script src="{{ url_for('static', filename='js/index/positions-sync-fix.js') }}"></script>
+<script src="{{ url_for('static', filename='js/index/positions-integration-fix.js') }}"></script>
 
- <!-- Imagenes-->
- <script src="{{ url_for('static', filename='js/images/images-backend.py') }}"></script>
- <script src="{{ url_for('static', filename='js/images/images-integration.js') }}"></script>
- <script src="{{ url_for('static', filename='js/images/images-manager.js') }}"></script>
+<!-- ✅ SCRIPTS DE IMÁGENES CORREGIDOS - SOLO .JS -->
+<script src="{{ url_for('static', filename='js/images/images-manager.js') }}"></script>
+<script src="{{ url_for('static', filename='js/images/images-integration.js') }}"></script>
+
+<!-- Script de inicialización final -->
+<script>
+console.log('🚀 Todos los scripts cargados, iniciando aplicación...');
+</script>
 {% endblock %}

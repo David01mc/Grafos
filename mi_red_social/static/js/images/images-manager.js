@@ -18,6 +18,101 @@ const IMAGENES_CONFIG = {
     previewSize: 200 // Tamaño del preview en modal
 };
 
+// Función auxiliar para verificar disponibilidad de variables del grafo
+function verificarContextoGrafo() {
+    return typeof window.nodes !== 'undefined' && window.nodes && 
+           typeof window.network !== 'undefined' && window.network;
+}
+
+// Función para obtener información de nodo de manera segura
+function obtenerInfoNodo(personaId) {
+    // Intentar obtener desde el grafo
+    if (verificarContextoGrafo()) {
+        try {
+            const nodo = window.nodes.get(personaId);
+            if (nodo) {
+                return {
+                    id: nodo.id,
+                    nombre: nodo.label?.replace(/<[^>]*>/g, '').trim() || `Nodo ${personaId}`,
+                    color: nodo.color,
+                    fuente: 'grafo'
+                };
+            }
+        } catch (error) {
+            console.warn('⚠️ Error accediendo al nodo del grafo:', error);
+        }
+    }
+    
+    // Fallback: intentar obtener desde datos de administración
+    const tablaPersonas = document.querySelector('table tbody');
+    if (tablaPersonas) {
+        const filas = tablaPersonas.querySelectorAll('tr');
+        for (const fila of filas) {
+            const badge = fila.querySelector('.badge.bg-light');
+            if (badge && parseInt(badge.textContent.trim()) === personaId) {
+                const celdaNombre = fila.querySelector('td:nth-child(3)'); // Ajustar según estructura
+                const nombre = celdaNombre ? celdaNombre.textContent.trim() : `Persona ${personaId}`;
+                return {
+                    id: personaId,
+                    nombre: nombre,
+                    color: '#4ECDC4',
+                    fuente: 'administracion'
+                };
+            }
+        }
+    }
+    
+    // Fallback final
+    return {
+        id: personaId,
+        nombre: `Persona ${personaId}`,
+        color: '#4ECDC4',
+        fuente: 'fallback'
+    };
+}
+
+// Función auxiliar para mostrar notificaciones de manera segura
+function mostrarNotificacionSegura(tipo, mensaje) {
+    // Intentar usar la función global si existe
+    if (typeof window.mostrarNotificacion === 'function') {
+        window.mostrarNotificacion(tipo, mensaje);
+        return;
+    }
+    
+    // Intentar usar toastr si está disponible
+    if (typeof toastr !== 'undefined') {
+        toastr[tipo](mensaje);
+        return;
+    }
+    
+    // Intentar usar Swal si está disponible
+    if (typeof Swal !== 'undefined') {
+        const iconMap = {
+            'success': 'success',
+            'error': 'error',
+            'warning': 'warning',
+            'info': 'info'
+        };
+        
+        Swal.fire({
+            icon: iconMap[tipo] || 'info',
+            title: mensaje,
+            timer: 3000,
+            showConfirmButton: false
+        });
+        return;
+    }
+    
+    // Fallback: usar alert del navegador
+    console.log(`${tipo.toUpperCase()}: ${mensaje}`);
+    if (tipo === 'error') {
+        alert(`Error: ${mensaje}`);
+    } else if (tipo === 'success') {
+        // Para success, solo log en consola para no ser molesto
+        console.log(`✅ ${mensaje}`);
+    }
+}
+
 // Función para cargar todas las imágenes disponibles
 async function cargarImagenesDisponibles() {
     if (imagenesEstado.cargandoImagenes) {
@@ -53,8 +148,10 @@ async function cargarImagenesDisponibles() {
             
             console.log(`✅ ${imagenesEstado.imagenesDisponibles.size} imágenes cargadas`);
             
-            // Aplicar imágenes a los nodos existentes
-            aplicarImagenesANodos();
+            // Aplicar imágenes a los nodos existentes si estamos en contexto de grafo
+            if (verificarContextoGrafo()) {
+                aplicarImagenesANodos();
+            }
             
             return true;
         } else {
@@ -63,11 +160,7 @@ async function cargarImagenesDisponibles() {
         
     } catch (error) {
         console.error('❌ Error cargando imágenes:', error);
-        
-        if (typeof mostrarNotificacion === 'function') {
-            mostrarNotificacion('error', 'Error cargando imágenes de usuarios');
-        }
-        
+        mostrarNotificacionSegura('error', 'Error cargando imágenes de usuarios');
         return false;
     } finally {
         imagenesEstado.cargandoImagenes = false;
@@ -76,85 +169,89 @@ async function cargarImagenesDisponibles() {
 
 // Función para aplicar imágenes a los nodos del grafo
 function aplicarImagenesANodos() {
-    if (!nodes || nodes.length === 0) {
-        console.log('📝 No hay nodos disponibles para aplicar imágenes');
+    if (!verificarContextoGrafo()) {
+        console.log('📝 Contexto de grafo no disponible para aplicar imágenes');
         return;
     }
     
-    const nodosActuales = nodes.get();
-    const updates = [];
-    
-    nodosActuales.forEach(nodo => {
-        const imagenInfo = imagenesEstado.imagenesDisponibles.get(nodo.id);
+    try {
+        const nodosActuales = window.nodes.get();
+        const updates = [];
         
-        if (imagenInfo) {
-            // Nodo con imagen
-            updates.push({
-                id: nodo.id,
-                shape: 'image',
-                image: imagenInfo.imagen_url,
-                size: IMAGENES_CONFIG.defaultSize,
-                borderWidth: 3,
-                borderWidthSelected: 5,
-                color: {
-                    border: nodo.color || '#4ECDC4',
-                    background: 'white'
-                },
-                chosen: {
-                    node: function(values, id, selected, hovering) {
-                        values.borderWidth = selected ? 5 : 3;
-                        values.shadow = selected || hovering;
-                        values.shadowColor = 'rgba(0,0,0,0.3)';
-                        values.shadowSize = selected ? 15 : 10;
-                    }
-                }
-            });
+        nodosActuales.forEach(nodo => {
+            const imagenInfo = imagenesEstado.imagenesDisponibles.get(nodo.id);
             
-            console.log(`🖼️ Imagen aplicada al nodo ${nodo.id}: ${imagenInfo.nombre}`);
-        } else {
-            // Nodo sin imagen - mantener estilo original
-            if (nodo.shape === 'image') {
+            if (imagenInfo) {
+                // Nodo con imagen
                 updates.push({
                     id: nodo.id,
-                    shape: 'dot',
-                    image: undefined,
-                    size: 30,
-                    borderWidth: 2,
-                    color: nodo.color || '#4ECDC4'
+                    shape: 'image',
+                    image: imagenInfo.imagen_url,
+                    size: IMAGENES_CONFIG.defaultSize,
+                    borderWidth: 3,
+                    borderWidthSelected: 5,
+                    color: {
+                        border: nodo.color || '#4ECDC4',
+                        background: 'white'
+                    },
+                    chosen: {
+                        node: function(values, id, selected, hovering) {
+                            values.borderWidth = selected ? 5 : 3;
+                            values.shadow = selected || hovering;
+                            values.shadowColor = 'rgba(0,0,0,0.3)';
+                            values.shadowSize = selected ? 15 : 10;
+                        }
+                    }
                 });
                 
-                console.log(`🔄 Imagen removida del nodo ${nodo.id}`);
+                console.log(`🖼️ Imagen aplicada al nodo ${nodo.id}: ${imagenInfo.nombre}`);
+            } else {
+                // Nodo sin imagen - mantener estilo original
+                if (nodo.shape === 'image') {
+                    updates.push({
+                        id: nodo.id,
+                        shape: 'dot',
+                        image: undefined,
+                        size: 30,
+                        borderWidth: 2,
+                        color: nodo.color || '#4ECDC4'
+                    });
+                    
+                    console.log(`🔄 Imagen removida del nodo ${nodo.id}`);
+                }
             }
+        });
+        
+        if (updates.length > 0) {
+            window.nodes.update(updates);
+            console.log(`✅ ${updates.length} nodos actualizados con cambios de imagen`);
         }
-    });
-    
-    if (updates.length > 0) {
-        nodes.update(updates);
-        console.log(`✅ ${updates.length} nodos actualizados con cambios de imagen`);
+    } catch (error) {
+        console.error('❌ Error aplicando imágenes a nodos:', error);
     }
 }
 
 // Función para subir imagen de un nodo
 async function subirImagenNodo(personaId, file) {
     if (!file) {
-        mostrarNotificacion('error', 'No se seleccionó ningún archivo');
+        mostrarNotificacionSegura('error', 'No se seleccionó ningún archivo');
         return false;
     }
     
     // Validar archivo
     if (!IMAGENES_CONFIG.allowedTypes.includes(file.type)) {
-        mostrarNotificacion('error', 'Tipo de archivo no permitido. Usa JPG, PNG, GIF o WebP');
+        mostrarNotificacionSegura('error', 'Tipo de archivo no permitido. Usa JPG, PNG, GIF o WebP');
         return false;
     }
     
     if (file.size > IMAGENES_CONFIG.maxFileSize) {
         const sizeMB = (IMAGENES_CONFIG.maxFileSize / (1024 * 1024)).toFixed(0);
-        mostrarNotificacion('error', `Archivo demasiado grande. Máximo ${sizeMB}MB`);
+        mostrarNotificacionSegura('error', `Archivo demasiado grande. Máximo ${sizeMB}MB`);
         return false;
     }
     
     try {
-        console.log(`📤 Subiendo imagen para nodo ${personaId}...`);
+        console.log(`📤 Subiendo imagen para persona ${personaId}...`);
         
         // Crear FormData
         const formData = new FormData();
@@ -169,30 +266,30 @@ async function subirImagenNodo(personaId, file) {
         const result = await response.json();
         
         if (response.ok && result.success) {
-            console.log(`✅ Imagen subida para nodo ${personaId}:`, result.imagen_url);
+            console.log(`✅ Imagen subida para persona ${personaId}:`, result.imagen_url);
             
             // Actualizar estado local
-            const nodo = nodes.get(personaId);
-            if (nodo) {
-                imagenesEstado.imagenesDisponibles.set(personaId, {
-                    nombre: nodo.label?.replace(/<[^>]*>/g, '').trim() || `Nodo ${personaId}`,
-                    imagen_url: result.imagen_url,
-                    timestamp: Date.now()
-                });
-                
-                // Aplicar imagen inmediatamente
+            const infoNodo = obtenerInfoNodo(personaId);
+            imagenesEstado.imagenesDisponibles.set(personaId, {
+                nombre: infoNodo.nombre,
+                imagen_url: result.imagen_url,
+                timestamp: Date.now()
+            });
+            
+            // Aplicar imagen inmediatamente si estamos en contexto de grafo
+            if (verificarContextoGrafo()) {
                 aplicarImagenesANodos();
-                
-                mostrarNotificacion('success', 'Imagen subida y aplicada exitosamente');
-                return true;
             }
+            
+            mostrarNotificacionSegura('success', 'Imagen subida exitosamente');
+            return true;
         } else {
             throw new Error(result.error || 'Error desconocido');
         }
         
     } catch (error) {
         console.error('❌ Error subiendo imagen:', error);
-        mostrarNotificacion('error', `Error subiendo imagen: ${error.message}`);
+        mostrarNotificacionSegura('error', `Error subiendo imagen: ${error.message}`);
         return false;
     }
 }
@@ -200,7 +297,7 @@ async function subirImagenNodo(personaId, file) {
 // Función para eliminar imagen de un nodo
 async function eliminarImagenNodo(personaId) {
     try {
-        console.log(`🗑️ Eliminando imagen del nodo ${personaId}...`);
+        console.log(`🗑️ Eliminando imagen de la persona ${personaId}...`);
         
         const response = await fetch(`/eliminar_imagen/${personaId}`, {
             method: 'DELETE'
@@ -209,15 +306,17 @@ async function eliminarImagenNodo(personaId) {
         const result = await response.json();
         
         if (response.ok && result.success) {
-            console.log(`✅ Imagen eliminada del nodo ${personaId}`);
+            console.log(`✅ Imagen eliminada de la persona ${personaId}`);
             
             // Actualizar estado local
             imagenesEstado.imagenesDisponibles.delete(personaId);
             
-            // Aplicar cambios
-            aplicarImagenesANodos();
+            // Aplicar cambios si estamos en contexto de grafo
+            if (verificarContextoGrafo()) {
+                aplicarImagenesANodos();
+            }
             
-            mostrarNotificacion('success', 'Imagen eliminada exitosamente');
+            mostrarNotificacionSegura('success', 'Imagen eliminada exitosamente');
             return true;
         } else {
             throw new Error(result.error || 'Error desconocido');
@@ -225,7 +324,7 @@ async function eliminarImagenNodo(personaId) {
         
     } catch (error) {
         console.error('❌ Error eliminando imagen:', error);
-        mostrarNotificacion('error', `Error eliminando imagen: ${error.message}`);
+        mostrarNotificacionSegura('error', `Error eliminando imagen: ${error.message}`);
         return false;
     }
 }
@@ -238,10 +337,11 @@ function crearModalGestionImagenes(personaId) {
         modalAnterior.remove();
     }
     
-    // Obtener información del nodo
-    const nodo = nodes.get(personaId);
-    const nombreNodo = nodo?.label?.replace(/<[^>]*>/g, '').trim() || `Nodo ${personaId}`;
+    // Obtener información del nodo de manera segura
+    const infoNodo = obtenerInfoNodo(personaId);
     const imagenActual = imagenesEstado.imagenesDisponibles.get(personaId);
+    
+    console.log(`🖼️ Creando modal de gestión de imagen para ${infoNodo.nombre} (ID: ${personaId}, fuente: ${infoNodo.fuente})`);
     
     const modalHTML = `
         <div class="modal fade" id="modalGestionImagenes" tabindex="-1">
@@ -250,7 +350,7 @@ function crearModalGestionImagenes(personaId) {
                     <div class="modal-header">
                         <h5 class="modal-title">
                             <i class="icon icon-user"></i>
-                            Imagen de ${nombreNodo}
+                            Imagen de ${infoNodo.nombre}
                         </h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
@@ -262,7 +362,7 @@ function crearModalGestionImagenes(personaId) {
                                     ${imagenActual ? 
                                         `<img src="${imagenActual.imagen_url}" alt="${imagenActual.nombre}" class="imagen-preview-actual">
                                          <div class="mt-2">
-                                             <button class="btn btn-danger btn-sm" onclick="eliminarImagenNodo(${personaId})">
+                                             <button class="btn btn-danger btn-sm" onclick="eliminarImagenPersona(${personaId})">
                                                  <i class="icon icon-trash"></i> Eliminar Imagen
                                              </button>
                                          </div>` :
@@ -276,7 +376,7 @@ function crearModalGestionImagenes(personaId) {
                             <div class="col-md-6">
                                 <h6>Subir Nueva Imagen:</h6>
                                 <div class="upload-container">
-                                    <input type="file" class="form-control mb-3" id="inputImagenNodo" 
+                                    <input type="file" class="form-control mb-3" id="inputImagenPersona" 
                                            accept="image/jpeg,image/jpg,image/png,image/gif,image/webp">
                                     <div class="imagen-preview-nueva" style="display: none;">
                                         <img id="previewImagenNueva" class="imagen-preview-nueva-img">
@@ -304,55 +404,6 @@ function crearModalGestionImagenes(personaId) {
                 </div>
             </div>
         </div>
-        
-        <style>
-        .imagen-preview-container {
-            text-align: center;
-            min-height: 200px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            border: 2px dashed #e2e8f0;
-            border-radius: 8px;
-            padding: 20px;
-        }
-        
-        .imagen-preview-actual {
-            max-width: 100%;
-            max-height: 200px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-        
-        .sin-imagen-placeholder {
-            text-align: center;
-            color: #94a3b8;
-        }
-        
-        .upload-container {
-            border: 2px dashed #cbd5e1;
-            border-radius: 8px;
-            padding: 20px;
-            text-align: center;
-        }
-        
-        .imagen-preview-nueva {
-            text-align: center;
-            margin: 15px 0;
-        }
-        
-        .imagen-preview-nueva-img {
-            max-width: 100%;
-            max-height: 200px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-        
-        .upload-info {
-            margin-top: 15px;
-        }
-        </style>
     `;
     
     // Agregar modal al DOM
@@ -369,10 +420,15 @@ function crearModalGestionImagenes(personaId) {
 
 // Función para configurar eventos del modal de imágenes
 function configurarEventosModalImagenes(personaId) {
-    const inputFile = document.getElementById('inputImagenNodo');
+    const inputFile = document.getElementById('inputImagenPersona');
     const previewNueva = document.getElementById('previewImagenNueva');
     const btnSubir = document.getElementById('btnSubirImagen');
     const previewContainer = document.querySelector('.imagen-preview-nueva');
+    
+    if (!inputFile || !previewNueva || !btnSubir || !previewContainer) {
+        console.error('❌ No se pudieron encontrar elementos del modal');
+        return;
+    }
     
     // Evento de cambio de archivo
     inputFile.addEventListener('change', function(e) {
@@ -381,14 +437,14 @@ function configurarEventosModalImagenes(personaId) {
         if (file) {
             // Validar archivo
             if (!IMAGENES_CONFIG.allowedTypes.includes(file.type)) {
-                mostrarNotificacion('error', 'Tipo de archivo no permitido');
+                mostrarNotificacionSegura('error', 'Tipo de archivo no permitido');
                 this.value = '';
                 return;
             }
             
             if (file.size > IMAGENES_CONFIG.maxFileSize) {
                 const sizeMB = (IMAGENES_CONFIG.maxFileSize / (1024 * 1024)).toFixed(0);
-                mostrarNotificacion('error', `Archivo demasiado grande. Máximo ${sizeMB}MB`);
+                mostrarNotificacionSegura('error', `Archivo demasiado grande. Máximo ${sizeMB}MB`);
                 this.value = '';
                 return;
             }
@@ -426,6 +482,16 @@ function configurarEventosModalImagenes(personaId) {
     });
 }
 
+// Función global para eliminar imagen (llamada desde el HTML)
+window.eliminarImagenPersona = async function(personaId) {
+    if (confirm('¿Estás seguro de que quieres eliminar esta imagen?')) {
+        const exito = await eliminarImagenNodo(personaId);
+        if (exito && imagenesEstado.modalActivo) {
+            imagenesEstado.modalActivo.hide();
+        }
+    }
+};
+
 // Función para mostrar modal de gestión de imágenes desde el modal de información
 function mostrarGestionImagenesDesdeInfo(personaId) {
     // Cerrar modal de información si está abierto
@@ -443,40 +509,39 @@ function mostrarGestionImagenesDesdeInfo(personaId) {
 
 // Integración con el sistema existente
 function integrarSistemaImagenes() {
-    console.log('🔌 Integrando sistema de imágenes con la red...');
+    console.log('🔌 Integrando sistema de imágenes...');
     
-    // Cargar imágenes al inicializar
-    if (typeof network !== 'undefined' && network && typeof nodes !== 'undefined' && nodes) {
+    // Cargar imágenes iniciales
+    setTimeout(async () => {
+        await cargarImagenesDisponibles();
+    }, 1000);
+    
+    // Si estamos en contexto de grafo, configurar aplicación automática
+    if (verificarContextoGrafo()) {
+        console.log('✅ Contexto de grafo detectado - configurando aplicación automática');
+        
+        // Aplicar imágenes cuando la red esté lista
         setTimeout(async () => {
             await cargarImagenesDisponibles();
         }, 2000);
     } else {
-        // Esperar a que el sistema esté listo
-        let intentos = 0;
-        const maxIntentos = 10;
-        
-        const intervaloBusqueda = setInterval(async () => {
-            intentos++;
-            
-            if (typeof network !== 'undefined' && network && typeof nodes !== 'undefined' && nodes) {
-                clearInterval(intervaloBusqueda);
-                await cargarImagenesDisponibles();
-            } else if (intentos >= maxIntentos) {
-                clearInterval(intervaloBusqueda);
-                console.warn('⚠️ No se pudo integrar sistema de imágenes - red no disponible');
-            }
-        }, 1000);
+        console.log('📋 Contexto de administración detectado - solo gestión de imágenes');
     }
 }
 
-// Funciones de utilidad
+// Funciones de utilidad públicas
 window.gestionImagenes = {
     cargar: cargarImagenesDisponibles,
     aplicar: aplicarImagenesANodos,
     subir: subirImagenNodo,
     eliminar: eliminarImagenNodo,
     mostrarModal: crearModalGestionImagenes,
-    estado: () => imagenesEstado
+    estado: () => ({
+        imagenesDisponibles: imagenesEstado.imagenesDisponibles,
+        cargandoImagenes: imagenesEstado.cargandoImagenes,
+        modalActivo: !!imagenesEstado.modalActivo,
+        contextoGrafo: verificarContextoGrafo()
+    })
 };
 
 // Función de test
@@ -485,16 +550,99 @@ window.testSistemaImagenes = function() {
     console.log('- Imágenes disponibles:', imagenesEstado.imagenesDisponibles.size);
     console.log('- Estado de carga:', imagenesEstado.cargandoImagenes);
     console.log('- Modal activo:', !!imagenesEstado.modalActivo);
+    console.log('- Contexto de grafo:', verificarContextoGrafo());
     
-    if (nodes && nodes.length > 0) {
-        const nodoTest = nodes.get()[0];
-        console.log('- Probando modal para nodo:', nodoTest.id);
-        crearModalGestionImagenes(nodoTest.id);
-    }
+    // Test con persona ID 2 si existe
+    console.log('- Probando modal para persona 2...');
+    crearModalGestionImagenes(2);
+};
+
+// Función de diagnóstico mejorada
+window.diagnosticoSistemaImagenes = function() {
+    console.log('🔍 DIAGNÓSTICO SISTEMA DE IMÁGENES:');
+    console.log('===================================');
+    
+    console.log('📊 Estado del sistema:');
+    console.log('- Sistema principal:', typeof gestionImagenes !== 'undefined' ? '✅' : '❌');
+    console.log('- Contexto de grafo:', verificarContextoGrafo() ? '✅' : '❌');
+    console.log('- Nodos disponibles:', verificarContextoGrafo() && window.nodes ? `✅ (${window.nodes.length})` : '❌');
+    
+    const estado = gestionImagenes.estado();
+    console.log('- Imágenes cargadas:', estado.imagenesDisponibles.size);
+    console.log('- Cargando:', estado.cargandoImagenes ? '🔄' : '✅');
+    console.log('- Modal activo:', estado.modalActivo ? '🔄' : '✅');
+    
+    console.log('===================================');
+    console.log('💡 Funciones disponibles:');
+    console.log('- gestionImagenes.mostrarModal(personaId) - Abrir gestión de imagen');
+    console.log('- gestionImagenes.cargar() - Recargar imágenes');
+    console.log('- testSistemaImagenes() - Test completo');
+    console.log('===================================');
 };
 
 // Auto-inicializar
 document.addEventListener('DOMContentLoaded', integrarSistemaImagenes);
 
+// Agregar estilos CSS
+const estilos = `
+<style id="estilos-imagenes-manager">
+.imagen-preview-container {
+    text-align: center;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 2px dashed #e2e8f0;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.imagen-preview-actual {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.sin-imagen-placeholder {
+    text-align: center;
+    color: #94a3b8;
+}
+
+.upload-container {
+    border: 2px dashed #cbd5e1;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+}
+
+.imagen-preview-nueva {
+    text-align: center;
+    margin: 15px 0;
+}
+
+.imagen-preview-nueva-img {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.upload-info {
+    margin-top: 15px;
+}
+
+.col-imagen {
+    width: 80px;
+    text-align: center;
+}
+</style>
+`;
+
+if (!document.getElementById('estilos-imagenes-manager')) {
+    document.head.insertAdjacentHTML('beforeend', estilos);
+}
+
 console.log('📸 Sistema de gestión de imágenes cargado');
-console.log('💡 Uso: gestionImagenes.mostrarModal(nodeId) para abrir gestión de imágenes');
+console.log('💡 Uso: gestionImagenes.mostrarModal(personaId) para abrir gestión de imágenes');

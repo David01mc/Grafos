@@ -1,136 +1,455 @@
-<!-- Modificaciones para templates/admin.html - Sistema de Imágenes -->
-<!-- AGREGAR estas modificaciones al archivo admin.html existente -->
+<!-- templates/admin.html -->
+{% extends "base.html" %}
 
-<!-- 1. MODIFICAR la tabla de personas existentes para incluir columna de imagen -->
-<!-- Reemplazar la sección de la tabla de personas con esta versión: -->
+{% block title %}Panel de Administración{% endblock %}
 
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="admin-panel">
-            <h4>
-                <i class="icon icon-users"></i>
-                Personas en tu Red ({{ personas|length }})
-            </h4>
-            <div class="table-responsive">
-                <table class="table table-striped table-hover">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>ID</th>
-                            <th>Imagen</th> <!-- ✅ NUEVA COLUMNA -->
-                            <th>Persona</th>
-                            <th>Grupo</th>
-                            <th>Descripción</th>
-                            <th>Fecha Agregada</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for persona in personas %}
-                        <tr>
-                            <td><span class="badge bg-light text-dark">{{ persona.id }}</span></td>
-                            
-                            <!-- ✅ NUEVA CELDA PARA IMAGEN -->
-                            <td class="text-center">
-                                {% if persona.imagen_url %}
-                                    <img src="{{ persona.imagen_url }}" alt="{{ persona.nombre }}" 
-                                         style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid {{ persona.color }};">
-                                {% else %}
-                                    <div style="width: 40px; height: 40px; border-radius: 50%; background-color: {{ persona.color }}; 
-                                                display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; margin: 0 auto;">
-                                        {{ persona.emoji or (persona.nombre[0] if persona.nombre else '?') }}
+{% block content %}
+<div class="main-container">
+    <h1 class="text-center mb-4">
+        <i class="icon icon-settings icon-xl"></i>
+        Panel de Administración
+    </h1>
+    
+    <!-- Estadísticas rápidas -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="stats-card">
+                <h3>{{ personas|length }}</h3>
+                <p class="mb-0">
+                    <i class="icon icon-users icon-white"></i>
+                    Personas Total
+                </p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stats-card">
+                <h3>{{ relaciones|length }}</h3>
+                <p class="mb-0">
+                    <i class="icon icon-connections icon-white"></i>
+                    Relaciones Total
+                </p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stats-card">
+                <h3>{{ ((relaciones|length / ((personas|length * (personas|length - 1)) / 2)) * 100)|round(1) if personas|length > 1 else 0 }}%</h3>
+                <p class="mb-0">
+                    <i class="icon icon-chart icon-white"></i>
+                    Densidad Red
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Formularios para agregar datos -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="admin-panel">
+                <h4>
+                    <i class="icon icon-user"></i>
+                    Agregar Nueva Persona
+                </h4>
+                <form method="POST" action="{{ url_for('personas.agregar_persona') }}">
+                    <div class="mb-3">
+                        <label class="form-label">Nombre *</label>
+                        <input type="text" class="form-control" name="nombre" required placeholder="Ej: Juan Pérez">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label">Emoji</label>
+                            <input type="text" class="form-control" name="emoji" placeholder="😊" maxlength="2">
+                            <small class="text-muted">Opcional - Representa a la persona</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Color</label>
+                            <input type="color" class="form-control" name="color" value="#4ecdc4">
+                            <small class="text-muted">Color del nodo en el grafo</small>
+                        </div>
+                    </div>
+                    <div class="mb-3 mt-3">
+                        <label class="form-label">Grupo Social</label>
+                        <select class="form-control" name="grupo">
+                            <option value="amigos">👫 Amigos</option>
+                            <option value="familia_cercana">👨‍👩‍👧‍👦 Familia Cercana</option>
+                            <option value="trabajo">💼 Trabajo</option>
+                            <option value="universidad">🎓 Universidad</option>
+                            <option value="deportes">⚽ Deportes</option>
+                            <option value="vecinos">🏠 Vecinos</option>
+                            <option value="nuevo">✨ Nuevo</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descripción</label>
+                        <textarea class="form-control" name="descripcion" rows="2" placeholder="Ej: Compañero de trabajo desde 2020, fan del fútbol"></textarea>
+                        <small class="text-muted">Información adicional sobre esta persona</small>
+                    </div>
+                    <button type="submit" class="btn btn-success btn-custom w-100">
+                        <i class="icon icon-plus icon-white"></i>
+                        Agregar Persona
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Formulario para agregar relación -->
+        <div class="col-md-6">
+            <div class="admin-panel">
+                <h4>
+                    <i class="icon icon-link"></i>
+                    Agregar Nueva Relación
+                </h4>
+                <form method="POST" action="{{ url_for('relaciones.agregar_relacion') }}">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label">Persona 1 *</label>
+                            <select class="form-control" name="persona1_id" required>
+                                <option value="">Seleccionar...</option>
+                                {% for persona in personas %}
+                                <option value="{{ persona.id }}">{{ persona.emoji }} {{ persona.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Persona 2 *</label>
+                            <select class="form-control" name="persona2_id" required>
+                                <option value="">Seleccionar...</option>
+                                {% for persona in personas %}
+                                <option value="{{ persona.id }}">{{ persona.emoji }} {{ persona.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Tipo de Relación</label>
+                            <select class="form-control" name="tipo">
+                                <option value="amistad">👫 Amistad</option>
+                                <option value="mejor_amigo">💖 Mejor Amigo/a</option>
+                                <option value="familia">👨‍👩‍👧‍👦 Familia</option>
+                                <option value="trabajo">💼 Trabajo</option>
+                                <option value="universidad">🎓 Universidad</option>
+                                <option value="deportes">⚽ Deportes</option>
+                                <option value="vecinos">🏠 Vecinos</option>
+                                <option value="pareja">💕 Pareja</option>
+                                <option value="conocidos">🤝 Conocidos</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Fortaleza (1-10)</label>
+                            <input type="number" class="form-control" name="fortaleza" min="1" max="10" value="5">
+                            <small class="text-muted">1=Débil, 10=Muy fuerte</small>
+                        </div>
+                    </div>
+                    <div class="mb-3 mt-3">
+                        <label class="form-label">Contexto</label>
+                        <input type="text" class="form-control" name="contexto" placeholder="Ej: Se conocieron en el gimnasio">
+                        <small class="text-muted">¿Cómo se conocen o relacionan?</small>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-custom w-100">
+                        <i class="icon icon-link icon-white"></i>
+                        Crear Relación
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Lista de personas existentes - ✅ VERSIÓN MEJORADA CON IMÁGENES -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="admin-panel">
+                <h4>
+                    <i class="icon icon-users"></i>
+                    Personas en tu Red ({{ personas|length }})
+                </h4>
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>ID</th>
+                                <th>Imagen</th> <!-- ✅ NUEVA COLUMNA -->
+                                <th>Persona</th>
+                                <th>Grupo</th>
+                                <th>Descripción</th>
+                                <th>Fecha Agregada</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for persona in personas %}
+                            <tr>
+                                <td><span class="badge bg-light text-dark">{{ persona.id }}</span></td>
+                                
+                                <!-- ✅ NUEVA CELDA PARA IMAGEN -->
+                                <td class="text-center">
+                                    {% if persona.imagen_url %}
+                                        <img src="{{ persona.imagen_url }}" alt="{{ persona.nombre }}" 
+                                             style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid {{ persona.color }};">
+                                    {% else %}
+                                        <div style="width: 40px; height: 40px; border-radius: 50%; background-color: {{ persona.color }}; 
+                                                    display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; margin: 0 auto;">
+                                            {{ persona.emoji or (persona.nombre[0] if persona.nombre else '?') }}
+                                        </div>
+                                    {% endif %}
+                                    <div class="mt-1">
+                                        <button class="btn btn-xs btn-outline-info" onclick="abrirGestionImagen({{ persona.id }})" 
+                                                title="Gestionar imagen de {{ persona.nombre }}">
+                                            <i class="icon icon-user icon-sm"></i>
+                                        </button>
                                     </div>
-                                {% endif %}
-                                <div class="mt-1">
-                                    <button class="btn btn-xs btn-outline-info" onclick="abrirGestionImagen({{ persona.id }})" 
-                                            title="Gestionar imagen de {{ persona.nombre }}">
-                                        <i class="icon icon-user icon-sm"></i>
-                                    </button>
-                                </div>
-                            </td>
-                            
-                            <td>
-                                <span style="color: {{ persona.color }}; font-size: 1.2em">{{ persona.emoji }}</span>
-                                <strong>{{ persona.nombre }}</strong>
-                            </td>
-                            <td>
-                                <span class="badge bg-secondary">{{ persona.grupo.replace('_', ' ').title() }}</span>
-                            </td>
-                            <td>
-                                <small>{{ persona.descripcion or 'Sin descripción' }}</small>
-                            </td>
-                            <td>
-                                <small class="text-muted">{{ persona.fecha_creacion[:10] if persona.fecha_creacion else 'N/A' }}</small>
-                            </td>
-                            <td>
-                                {% if persona.nombre != 'Usuario Principal' %}
-                                <a href="{{ url_for('eliminar_persona', persona_id=persona.id) }}" 
-                                   class="btn btn-sm btn-danger"
-                                   onclick="return confirm('¿Estás seguro de eliminar a {{ persona.nombre }}? Se eliminarán también todas sus relaciones y su imagen.')">
-                                   <i class="icon icon-trash icon-white icon-sm"></i>
-                                   Eliminar
-                                </a>
-                                {% else %}
-                                <span class="badge bg-warning text-dark">
-                                    <i class="icon icon-crown icon-sm"></i>
-                                    Centro de la Red
-                                </span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                                </td>
+                                
+                                <td>
+                                    <span style="color: {{ persona.color }}; font-size: 1.2em">{{ persona.emoji }}</span>
+                                    <strong>{{ persona.nombre }}</strong>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ persona.grupo.replace('_', ' ').title() }}</span>
+                                </td>
+                                <td>
+                                    <small>{{ persona.descripcion or 'Sin descripción' }}</small>
+                                </td>
+                                <td>
+                                    <small class="text-muted">{{ persona.fecha_creacion[:10] if persona.fecha_creacion else 'N/A' }}</small>
+                                </td>
+                                <td>
+                                    {% if persona.nombre != 'Tú' and persona.nombre != 'Usuario Principal' %}
+                                    <a href="{{ url_for('personas.eliminar_persona', persona_id=persona.id) }}" 
+                                       class="btn btn-sm btn-danger"
+                                       onclick="return confirm('¿Estás seguro de eliminar a {{ persona.nombre }}? Se eliminarán también todas sus relaciones y su imagen.')">
+                                       <i class="icon icon-trash icon-white icon-sm"></i>
+                                       Eliminar
+                                    </a>
+                                    {% else %}
+                                    <span class="badge bg-warning text-dark">
+                                        <i class="icon icon-crown icon-sm"></i>
+                                        Centro de la Red
+                                    </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                {% if personas|length == 0 %}
+                <div class="text-center py-4">
+                    <p class="text-muted">No hay personas agregadas aún. ¡Agrega algunas usando el formulario de arriba!</p>
+                </div>
+                {% endif %}
             </div>
-            
-            {% if personas|length == 0 %}
-            <div class="text-center py-4">
-                <p class="text-muted">No hay personas agregadas aún. ¡Agrega algunas usando el formulario de arriba!</p>
+        </div>
+    </div>
+    
+    <!-- Lista de relaciones existentes -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="admin-panel">
+                <h4>
+                    <i class="icon icon-connections"></i>
+                    Relaciones Actuales ({{ relaciones|length }})
+                </h4>
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Conexión</th>
+                                <th>Tipo</th>
+                                <th>Fortaleza</th>
+                                <th>Contexto</th>
+                                <th>Fecha</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for relacion in relaciones %}
+                            <tr>
+                                <td>
+                                    <strong>{{ relacion.persona1_nombre }}</strong> 
+                                    <span class="text-muted">↔</span> 
+                                    <strong>{{ relacion.persona2_nombre }}</strong>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">{{ relacion.tipo.replace('_', ' ').title() }}</span>
+                                </td>
+                                <td>
+                                    <div class="progress" style="height: 20px; width: 80px;">
+                                        <div class="progress-bar{% if relacion.fortaleza >= 8 %} bg-success{% elif relacion.fortaleza >= 6 %} bg-warning{% elif relacion.fortaleza >= 4 %} bg-info{% else %} bg-secondary{% endif %}" style="width: {{ relacion.fortaleza * 10 }}%;">
+                                            {{ relacion.fortaleza }}/10
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <small>{{ relacion.contexto or 'Sin contexto específico' }}</small>
+                                </td>
+                                <td>
+                                    <small class="text-muted">{{ relacion.fecha_creacion[:10] if relacion.fecha_creacion else 'N/A' }}</small>
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('relaciones.eliminar_relacion', relacion_id=relacion.id) }}" 
+                                       class="btn btn-sm btn-danger"
+                                       onclick="return confirm('¿Eliminar la relación entre {{ relacion.persona1_nombre }} y {{ relacion.persona2_nombre }}?')">
+                                       <i class="icon icon-trash icon-white icon-sm"></i>
+                                       Eliminar
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                {% if relaciones|length == 0 %}
+                <div class="text-center py-4">
+                    <p class="text-muted">No hay relaciones creadas aún. ¡Agrega algunas usando el formulario de arriba!</p>
+                </div>
+                {% endif %}
             </div>
-            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Botones de acción rápida -->
+    <div class="row mt-4">
+        <div class="col-12 text-center">
+            <a href="{{ url_for('main.index') }}" class="btn btn-success btn-custom btn-lg me-3">
+                <i class="icon icon-chart icon-white"></i>
+                Ver Grafo Actualizado
+            </a>
+            <a href="/api/grafo" target="_blank" class="btn btn-info btn-custom me-3">
+                <i class="icon icon-code icon-white"></i>
+                Ver Datos JSON
+            </a>
+            <button class="btn btn-warning btn-custom" onclick="location.reload()">
+                <i class="icon icon-refresh icon-white"></i>
+                Recargar Panel
+            </button>
+        </div>
+    </div>
+    
+    <!-- Tips de uso - ✅ MEJORADOS CON INFORMACIÓN DE IMÁGENES -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="admin-panel">
+                <h5>
+                    <i class="icon icon-lightning"></i>
+                    Tips de Uso:
+                </h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <ul>
+                            <li><strong>Fortaleza:</strong> 1-3 = Conocidos, 4-6 = Amigos, 7-8 = Buenos amigos, 9-10 = Familia/Mejores amigos</li>
+                            <li><strong>Colores:</strong> Elige colores similares para grupos relacionados</li>
+                            <li><strong>Emojis:</strong> Ayudan a identificar rápidamente a las personas</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <ul>
+                            <li><strong>Imágenes:</strong> Haz clic en el botón azul para agregar fotos a las personas</li>
+                            <li><strong>Contexto:</strong> Describe cómo se conocen las personas</li>
+                            <li><strong>Grupos:</strong> Facilitan el análisis visual de la red</li>
+                            <li><strong>Centro:</strong> "Tú" no se puede eliminar, es el centro de tu red</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+{% endblock %}
 
-<!-- 2. AGREGAR al final de la sección de scripts -->
 {% block scripts %}
-<!-- Scripts existentes... -->
-
-<!-- ✅ SCRIPT ADICIONAL PARA SISTEMA DE IMÁGENES EN ADMIN -->
-<script src="{{ url_for('static', filename='js/images-manager.js') }}"></script>
-<script src="{{ url_for('static', filename='js/images-integration.js') }}"></script>
+<!-- ✅ SCRIPTS DE IMÁGENES INTEGRADOS -->
+<script src="{{ url_for('static', filename='js/images/images-manager.js') }}"></script>
+<script src="{{ url_for('static', filename='js/images/images-integration.js') }}"></script>
 
 <script>
-// Función para abrir gestión de imagen desde administración
-function abrirGestionImagen(personaId) {
-    console.log('🖼️ Abriendo gestión de imagen para persona:', personaId);
-    
-    // Verificar que el sistema de imágenes esté disponible
-    if (typeof gestionImagenes !== 'undefined') {
-        gestionImagenes.mostrarModal(personaId);
-    } else {
-        // Esperar a que se cargue
-        let intentos = 0;
-        const maxIntentos = 10;
-        
-        const esperarSistema = setInterval(() => {
-            intentos++;
-            
-            if (typeof gestionImagenes !== 'undefined') {
-                clearInterval(esperarSistema);
-                gestionImagenes.mostrarModal(personaId);
-            } else if (intentos >= maxIntentos) {
-                clearInterval(esperarSistema);
-                alert('Error: Sistema de imágenes no disponible. Recarga la página.');
-            }
-        }, 500);
-    }
-}
-
-// Mejorar la validación de formularios existente
+// ✅ VALIDACIÓN DE FORMULARIOS ORIGINAL + MEJORAS
 document.addEventListener('DOMContentLoaded', function() {
-    // ... validaciones existentes ...
+    // Evitar que se seleccione la misma persona en ambos campos de relación
+    const persona1 = document.querySelector('select[name="persona1_id"]');
+    const persona2 = document.querySelector('select[name="persona2_id"]');
     
-    // ✅ VALIDACIÓN ADICIONAL PARA IMÁGENES (si se implementa en el futuro)
+    if (persona1 && persona2) {
+        persona1.addEventListener('change', function() {
+            const selectedValue = this.value;
+            Array.from(persona2.options).forEach(option => {
+                if (option.value === selectedValue && selectedValue !== '') {
+                    option.disabled = true;
+                    option.style.color = '#ccc';
+                } else {
+                    option.disabled = false;
+                    option.style.color = '';
+                }
+            });
+        });
+        
+        persona2.addEventListener('change', function() {
+            const selectedValue = this.value;
+            Array.from(persona1.options).forEach(option => {
+                if (option.value === selectedValue && selectedValue !== '') {
+                    option.disabled = true;
+                    option.style.color = '#ccc';
+                } else {
+                    option.disabled = false;
+                    option.style.color = '';
+                }
+            });
+        });
+    }
+    
+    // Auto-focus en primer campo de formularios
+    const firstInput = document.querySelector('input[name="nombre"]');
+    if (firstInput) {
+        firstInput.focus();
+    }
+    
+    // Validación adicional antes de enviar
+    const formRelacion = document.querySelector('form[action*="agregar_relacion"]');
+    if (formRelacion) {
+        formRelacion.addEventListener('submit', function(e) {
+            const p1 = document.querySelector('select[name="persona1_id"]').value;
+            const p2 = document.querySelector('select[name="persona2_id"]').value;
+            
+            if (p1 === p2 && p1 !== '') {
+                e.preventDefault();
+                alert('❌ No puedes crear una relación de una persona consigo misma');
+                return false;
+            }
+            
+            if (!p1 || !p2) {
+                e.preventDefault();
+                alert('❌ Debes seleccionar ambas personas para crear la relación');
+                return false;
+            }
+        });
+    }
+    
+    // Validación de emoji (máximo 2 caracteres)
+    const emojiInput = document.querySelector('input[name="emoji"]');
+    if (emojiInput) {
+        emojiInput.addEventListener('input', function() {
+            if (this.value.length > 2) {
+                this.value = this.value.slice(0, 2);
+            }
+        });
+    }
+    
+    // Validación de nombre (no vacío y longitud razonable)
+    const nombreInput = document.querySelector('input[name="nombre"]');
+    if (nombreInput) {
+        nombreInput.addEventListener('blur', function() {
+            if (this.value.trim().length < 2) {
+                this.style.borderColor = '#dc3545';
+                this.style.boxShadow = '0 0 0 0.2rem rgba(220, 53, 69, 0.25)';
+            } else {
+                this.style.borderColor = '';
+                this.style.boxShadow = '';
+            }
+        });
+    }
+    
+    // ✅ VALIDACIÓN ADICIONAL PARA IMÁGENES
     const imagenInput = document.querySelector('input[type="file"][name="imagen"]');
     if (imagenInput) {
         imagenInput.addEventListener('change', function() {
@@ -183,50 +502,104 @@ document.addEventListener('DOMContentLoaded', function() {
     mostrarPreviewImagenAdmin();
 });
 
-// Función para actualizar la tabla después de cambios de imagen
-function actualizarTablaPersonas() {
-    console.log('🔄 Actualizando tabla de personas...');
-    location.reload(); // Simple reload por ahora
-}
-
-// Escuchar eventos del sistema de imágenes
-document.addEventListener('imagenActualizada', function(event) {
-    console.log('📸 Imagen actualizada para persona:', event.detail.personaId);
-    // Actualizar la fila específica de la tabla
-    setTimeout(actualizarTablaPersonas, 1000);
-});
-
-// Función de diagnóstico para administración
-function diagnosticoImagenesAdmin() {
-    console.log('🔍 DIAGNÓSTICO IMÁGENES EN ADMIN:');
-    console.log('================================');
-    
-    // Verificar estado del sistema
-    console.log('- Sistema imágenes:', typeof gestionImagenes !== 'undefined' ? '✅' : '❌');
-    console.log('- Bootstrap:', typeof bootstrap !== 'undefined' ? '✅' : '❌');
-    
-    // Contar imágenes en la tabla
-    const imagenesEnTabla = document.querySelectorAll('table img[src*="static/images"]');
-    console.log('- Imágenes en tabla:', imagenesEnTabla.length);
-    
-    // Contar botones de gestión
-    const botonesGestion = document.querySelectorAll('button[onclick*="abrirGestionImagen"]');
-    console.log('- Botones gestión:', botonesGestion.length);
-    
-    console.log('================================');
-    
-    if (typeof gestionImagenes !== 'undefined') {
-        const estado = gestionImagenes.estado();
-        console.log('- Imágenes cargadas:', estado.imagenesDisponibles.size);
-        return true;
+// Función auxiliar para mostrar notificaciones de manera segura
+function mostrarNotificacionSegura(tipo, mensaje) {
+    // Intentar usar la función global si existe
+    if (typeof window.mostrarNotificacion === 'function') {
+        window.mostrarNotificacion(tipo, mensaje);
+        return;
     }
     
-    return false;
+    // Intentar usar toastr si está disponible
+    if (typeof toastr !== 'undefined') {
+        toastr[tipo](mensaje);
+        return;
+    }
+    
+    // Intentar usar Swal si está disponible
+    if (typeof Swal !== 'undefined') {
+        const iconMap = {
+            'success': 'success',
+            'error': 'error',
+            'warning': 'warning',
+            'info': 'info'
+        };
+        
+        Swal.fire({
+            icon: iconMap[tipo] || 'info',
+            title: mensaje,
+            timer: 3000,
+            showConfirmButton: false
+        });
+        return;
+    }
+    
+    // Fallback: usar alert del navegador
+    console.log(`${tipo.toUpperCase()}: ${mensaje}`);
+    if (tipo === 'error') {
+        alert(`Error: ${mensaje}`);
+    } else if (tipo === 'success') {
+        // Para success, solo log en consola para no ser molesto
+        console.log(`✅ ${mensaje}`);
+    }
 }
 
-// Hacer disponible globalmente
-window.diagnosticoImagenesAdmin = diagnosticoImagenesAdmin;
-window.actualizarTablaPersonas = actualizarTablaPersonas;
+// Función corregida para abrir gestión de imagen desde administración
+function abrirGestionImagen(personaId) {
+    console.log('🖼️ Abriendo gestión de imagen para persona:', personaId);
+    
+    // Verificar que el sistema de imágenes esté disponible
+    if (typeof gestionImagenes === 'undefined') {
+        console.error('❌ Sistema de gestión de imágenes no disponible');
+        mostrarNotificacionSegura('error', 'Sistema de imágenes no disponible. Asegúrate de que images-manager.js esté cargado.');
+        return;
+    }
+    
+    // Verificar que personaId sea válido
+    if (!personaId || isNaN(personaId)) {
+        console.error('❌ ID de persona inválido:', personaId);
+        mostrarNotificacionSegura('error', 'ID de persona inválido');
+        return;
+    }
+    
+    try {
+        // Llamar al sistema de gestión de imágenes
+        gestionImagenes.mostrarModal(parseInt(personaId));
+    } catch (error) {
+        console.error('❌ Error abriendo gestión de imagen:', error);
+        mostrarNotificacionSegura('error', 'Error abriendo gestión de imagen: ' + error.message);
+    }
+}
+
+// Función auxiliar para verificar el estado del sistema
+function verificarSistemaImagenes() {
+    if (typeof gestionImagenes !== 'undefined') {
+        const estado = gestionImagenes.estado();
+        console.log('📊 Estado del sistema de imágenes:', estado);
+        return true;
+    } else {
+        console.warn('⚠️ Sistema de gestión de imágenes no disponible');
+        return false;
+    }
+}
+
+// Función para recargar imágenes desde administración
+function recargarImagenesAdmin() {
+    if (typeof gestionImagenes !== 'undefined') {
+        console.log('🔄 Recargando imágenes...');
+        gestionImagenes.cargar();
+    } else {
+        console.warn('⚠️ Sistema de gestión de imágenes no disponible para recargar');
+    }
+}
+
+// Asegurar que las funciones estén disponibles globalmente
+window.abrirGestionImagen = abrirGestionImagen;
+window.verificarSistemaImagenes = verificarSistemaImagenes;
+window.recargarImagenesAdmin = recargarImagenesAdmin;
+window.mostrarNotificacionSegura = mostrarNotificacionSegura;
+
+console.log('✅ Funciones de administración de imágenes configuradas');
 </script>
 
 <!-- ✅ ESTILOS ADICIONALES PARA ADMINISTRACIÓN -->
@@ -316,6 +689,237 @@ window.actualizarTablaPersonas = actualizarTablaPersonas;
         padding: 0.1rem 0.2rem;
         font-size: 0.7rem;
     }
+}
+
+/* Mejoras adicionales para la interfaz de admin */
+.stats-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1.5rem;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1rem;
+}
+
+.stats-card h3 {
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.admin-panel {
+    background: #ffffff;
+    border: 1px solid #e3e6f0;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.admin-panel h4 {
+    color: #5a5c69;
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+}
+
+.btn-custom {
+    border-radius: 8px;
+    font-weight: 500;
+    padding: 0.6rem 1.2rem;
+    transition: all 0.3s ease;
+}
+
+.btn-custom:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.form-control {
+    border-radius: 6px;
+    border: 1px solid #d1d3e2;
+    padding: 0.6rem 0.75rem;
+}
+
+.form-control:focus {
+    border-color: #4e73df;
+    box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+}
+
+.table-responsive {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.table thead th {
+    border: none;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+}
+
+.table tbody tr:hover {
+    background-color: #f8f9fc;
+}
+
+.badge {
+    font-size: 0.75rem;
+    padding: 0.35em 0.6em;
+    border-radius: 6px;
+}
+
+.progress {
+    border-radius: 6px;
+    background-color: #e3e6f0;
+}
+
+.progress-bar {
+    border-radius: 6px;
+}
+
+/* Animaciones para elementos interactivos */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.admin-panel {
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* Mejoras en la visualización de estado de imágenes */
+.imagen-container {
+    position: relative;
+    display: inline-block;
+}
+
+.imagen-container .imagen-status {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+/* Estilos para formularios mejorados */
+.form-group-enhanced {
+    position: relative;
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    font-weight: 500;
+    color: #5a5c69;
+    margin-bottom: 0.5rem;
+}
+
+.text-muted {
+    font-size: 0.875rem;
+}
+
+/* Botones de acción mejorados */
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.action-buttons .btn {
+    flex: 1;
+    min-width: 120px;
+}
+
+/* Responsive improvements */
+@media (max-width: 992px) {
+    .stats-card h3 {
+        font-size: 2rem;
+    }
+    
+    .admin-panel {
+        padding: 1rem;
+    }
+    
+    .action-buttons .btn {
+        min-width: 100px;
+        margin-bottom: 0.5rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .stats-card {
+        margin-bottom: 0.5rem;
+    }
+    
+    .stats-card h3 {
+        font-size: 1.75rem;
+    }
+    
+    .btn-custom {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+    }
+    
+    .table {
+        font-size: 0.875rem;
+    }
+    
+    .admin-panel h4 {
+        font-size: 1.1rem;
+    }
+}
+
+/* Efectos de carga y feedback visual */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.success-feedback {
+    border-color: #1cc88a !important;
+    box-shadow: 0 0 0 0.2rem rgba(28, 200, 138, 0.25) !important;
+}
+
+.error-feedback {
+    border-color: #e74a3b !important;
+    box-shadow: 0 0 0 0.2rem rgba(231, 74, 59, 0.25) !important;
+}
+
+/* Tooltip personalizado */
+.custom-tooltip {
+    position: relative;
+    cursor: help;
+}
+
+.custom-tooltip:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    z-index: 1000;
+    margin-bottom: 5px;
+}
+
+.custom-tooltip:hover::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: rgba(0, 0, 0, 0.9);
+    z-index: 1000;
 }
 </style>
 
