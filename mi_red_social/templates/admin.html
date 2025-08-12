@@ -49,7 +49,7 @@
                     <i class="icon icon-user"></i>
                     Agregar Nueva Persona
                 </h4>
-                <form method="POST" action="{{ url_for('agregar_persona') }}">
+                <form method="POST" action="{{ url_for('personas.agregar_persona') }}">
                     <div class="mb-3">
                         <label class="form-label">Nombre *</label>
                         <input type="text" class="form-control" name="nombre" required placeholder="Ej: Juan Pérez">
@@ -98,7 +98,7 @@
                     <i class="icon icon-link"></i>
                     Agregar Nueva Relación
                 </h4>
-                <form method="POST" action="{{ url_for('agregar_relacion') }}">
+                <form method="POST" action="{{ url_for('relaciones.agregar_relacion') }}">
                     <div class="row">
                         <div class="col-md-6">
                             <label class="form-label">Persona 1 *</label>
@@ -214,7 +214,7 @@
                                 </td>
                                 <td>
                                     {% if persona.nombre != 'Tú' and persona.nombre != 'Usuario Principal' %}
-                                    <a href="{{ url_for('eliminar_persona', persona_id=persona.id) }}" 
+                                    <a href="{{ url_for('personas.eliminar_persona', persona_id=persona.id) }}" 
                                        class="btn btn-sm btn-danger"
                                        onclick="return confirm('¿Estás seguro de eliminar a {{ persona.nombre }}? Se eliminarán también todas sus relaciones y su imagen.')">
                                        <i class="icon icon-trash icon-white icon-sm"></i>
@@ -287,7 +287,7 @@
                                     <small class="text-muted">{{ relacion.fecha_creacion[:10] if relacion.fecha_creacion else 'N/A' }}</small>
                                 </td>
                                 <td>
-                                    <a href="{{ url_for('eliminar_relacion', relacion_id=relacion.id) }}" 
+                                    <a href="{{ url_for('relaciones.eliminar_relacion', relacion_id=relacion.id) }}" 
                                        class="btn btn-sm btn-danger"
                                        onclick="return confirm('¿Eliminar la relación entre {{ relacion.persona1_nombre }} y {{ relacion.persona2_nombre }}?')">
                                        <i class="icon icon-trash icon-white icon-sm"></i>
@@ -312,7 +312,7 @@
     <!-- Botones de acción rápida -->
     <div class="row mt-4">
         <div class="col-12 text-center">
-            <a href="{{ url_for('index') }}" class="btn btn-success btn-custom btn-lg me-3">
+            <a href="{{ url_for('main.index') }}" class="btn btn-success btn-custom btn-lg me-3">
                 <i class="icon icon-chart icon-white"></i>
                 Ver Grafo Actualizado
             </a>

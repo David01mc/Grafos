@@ -126,7 +126,32 @@ def grupos():
             'message': f'{actualizados} grupos actualizados exitosamente',
             'actualizados': actualizados
         })
-        
     except Exception as e:
         print(f"❌ Error en grupos: {e}")
         return jsonify({'error': str(e)}), 500
+    
+@grafo_bp.route('/obtener_grupos_personas', methods=['GET'])
+def obtener_grupos_personas():
+            """Obtener grupos actuales de todas las personas"""
+            return grupos()  # Redirigir a la función grupos existente
+
+@grafo_bp.route('/obtener_imagenes', methods=['GET'])
+def obtener_imagenes():
+            """Obtener todas las URLs de imágenes"""
+            try:
+                db_manager = DatabaseManager(current_app.config['DATABASE_PATH'])
+                persona_repo = PersonaRepository(db_manager)
+                personas = persona_repo.get_all()
+                
+                imagenes = {
+                    p.id: {'nombre': p.nombre, 'imagen_url': p.imagen_url}
+                    for p in personas if p.imagen_url
+                }
+                
+                return jsonify({'success': True, 'imagenes': imagenes})
+                
+            except Exception as e:
+                return jsonify({'error': f'Error interno: {str(e)}'}), 500
+
+
+    

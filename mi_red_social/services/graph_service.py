@@ -50,8 +50,9 @@ class GraphService:
                     'borderWidth': 2
                 })
             
+            # ✅ Código corregido
             # Agregar posiciones si existen
-            if persona.posicion_x is not None and persona.posicion_y is not None:
+            if hasattr(persona, 'posicion_x') and persona.posicion_x is not None and persona.posicion_y is not None:
                 node_data.update({
                     'x': float(persona.posicion_x),
                     'y': float(persona.posicion_y),

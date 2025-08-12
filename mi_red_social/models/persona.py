@@ -39,16 +39,16 @@ class Persona:
     def from_row(cls, row: Any) -> 'Persona':
         """Crear instancia desde fila de base de datos"""
         return cls(
-            id=row['id'],
-            nombre=row['nombre'],
-            icono=row['icono'],
-            grupo=row['grupo'],
-            color=row['color'],
-            descripcion=row['descripcion'],
-            posicion_x=row['posicion_x'],
-            posicion_y=row['posicion_y'],
-            imagen_url=row['imagen_url'],
-            fecha_creacion=row['fecha_creacion']
+            id=row['id'] if row else None,
+            nombre=row['nombre'] if row else "",
+            icono=row['icono'] if row else "user",
+            grupo=row['grupo'] if row else "contactos",
+            color=row['color'] if row else "#3b82f6",
+            descripcion=row['descripcion'] if row else "",
+            posicion_x=row['posicion_x'] if row and row['posicion_x'] is not None else None,
+            posicion_y=row['posicion_y'] if row and row['posicion_y'] is not None else None,
+            imagen_url=row['imagen_url'] if row else None,
+            fecha_creacion=row['fecha_creacion'] if row else None
         )
 
 class PersonaRepository:

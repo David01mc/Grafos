@@ -7,10 +7,19 @@ from config import Config
 from models.database import init_db, create_images_directory
 from api import register_blueprints
 import os
+from pathlib import Path
 
 def create_app(config_class=Config):
     """Factory pattern para crear la aplicación Flask"""
-    app = Flask(__name__)
+    
+    # Obtener el directorio base del proyecto
+    base_dir = Path(__file__).parent.absolute()
+    
+    # Crear app con rutas correctas para templates y static
+    app = Flask(__name__,
+                template_folder=str(base_dir / 'templates'),
+                static_folder=str(base_dir / 'static'))
+    
     app.config.from_object(config_class)
     
     # Inicializar base de datos
