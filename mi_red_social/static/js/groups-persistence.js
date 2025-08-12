@@ -13,7 +13,7 @@ async function enviarActualizacionesGruposAlServidor(updates) {
     try {
         console.log('📤 Enviando actualizaciones de grupos al servidor:', updates);
         
-        const response = await fetch('/actualizar_grupos', {
+        const response = await fetch('api/actualizar_grupos', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -44,7 +44,7 @@ async function obtenerGruposDelServidor() {
     try {
         console.log('📥 Obteniendo grupos actuales del servidor...');
         
-        const response = await fetch('/obtener_grupos_personas');
+        const response = await fetch('/api/obtener_grupos_personas');
         
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
@@ -161,7 +161,7 @@ window.diagnosticarProblemasPersistencia = async function() {
     
     // 1. Verificar backend
     try {
-        const response = await fetch('/actualizar_grupos', {
+        const response = await fetch('/api/grupos', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ updates: [] })

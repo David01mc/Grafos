@@ -19,7 +19,7 @@ async function guardarPosiciones() {
     });
     
     try {
-        await fetch('/guardar_posiciones', {
+        await fetch('/api/posiciones', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({posiciones})
@@ -32,7 +32,7 @@ async function guardarPosiciones() {
 
 async function cargarPosiciones() {
     try {
-        const response = await fetch('/obtener_posiciones');
+        const response = await fetch('/api/posiciones');
         const data = await response.json();
         
         if (data.posiciones && Object.keys(data.posiciones).length > 0) {

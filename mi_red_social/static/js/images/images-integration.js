@@ -173,7 +173,7 @@ function modificarGuardadoNodo() {
             console.log('📤 Enviando datos de persona:', Object.fromEntries(formData));
             
             // Crear persona primero
-            const response = await fetch('/agregar_persona', {
+            const response = await fetch('/api/personas', {
                 method: 'POST',
                 body: formData
             });
@@ -201,7 +201,7 @@ function modificarGuardadoNodo() {
                     imagenFormData.append('imagen', inputImagen.files[0]);
                     
                     try {
-                        const imagenResponse = await fetch(`/subir_imagen/${personaId}`, {
+                        const imagenResponse = await fetch(`/api/personas/${personaId}`, {
                             method: 'POST',
                             body: imagenFormData
                         });

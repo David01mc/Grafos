@@ -391,7 +391,7 @@ async function guardarNuevoNodo() {
         console.log('📤 Enviando datos:', Object.fromEntries(formData));
         
         // Enviar datos al servidor
-        const response = await fetch('/agregar_persona', {
+        const response = await fetch('api/agregar_persona', {
             method: 'POST',
             body: formData
         });

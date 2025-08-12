@@ -63,7 +63,7 @@ async function guardarPosiciones(forzarGuardado = false) {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), POSICIONES_CONFIG.timeoutRequest);
         
-        const response = await fetch('/guardar_posiciones', {
+        const response = await fetch('/api/posiciones', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -120,7 +120,7 @@ async function cargarPosiciones(aplicarInmediatamente = true) {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), POSICIONES_CONFIG.timeoutRequest);
         
-        const response = await fetch('/obtener_posiciones', {
+        const response = await fetch('/api/posiciones', {
             signal: controller.signal
         });
         
@@ -398,7 +398,7 @@ window.diagnosticoPosiciones = function() {
     
     // Test de conectividad
     console.log('🧪 Probando conectividad con servidor...');
-    fetch('/obtener_posiciones')
+    fetch('/api/posiciones')
         .then(response => response.ok ? 
             console.log('✅ Servidor de posiciones accesible') : 
             console.log('❌ Servidor de posiciones no responde'))

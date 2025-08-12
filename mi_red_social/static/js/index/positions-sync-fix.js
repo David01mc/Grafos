@@ -27,7 +27,7 @@ async function cargarYAplicarPosiciones() {
 
         // 3. Cargar posiciones del servidor
         console.log('🌐 [SYNC] Cargando posiciones del servidor...');
-        const response = await fetch('/obtener_posiciones');
+        const response = await fetch('/api/posiciones');
         
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
@@ -135,7 +135,7 @@ async function guardarPosicionesConVerificacion() {
 
         // Enviar al servidor
         console.log('🌐 [SYNC] Enviando posiciones al servidor...');
-        const response = await fetch('/guardar_posiciones', {
+        const response = await fetch('/api/posiciones', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -291,7 +291,7 @@ window.debugPosicionesDetallado = function() {
     
     // 3. Test de conectividad
     console.log('\n3. 🌐 Test de conectividad:');
-    fetch('/obtener_posiciones')
+    fetch('/api/posiciones')
         .then(r => r.json())
         .then(data => {
             console.log('   - GET /obtener_posiciones:', data);

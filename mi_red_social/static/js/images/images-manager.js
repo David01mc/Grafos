@@ -125,7 +125,7 @@ async function cargarImagenesDisponibles() {
     try {
         console.log('📥 Cargando imágenes desde servidor...');
         
-        const response = await fetch('/obtener_imagenes');
+        const response = await fetch('/api/obtener_imagenes');
         
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -258,7 +258,7 @@ async function subirImagenNodo(personaId, file) {
         formData.append('imagen', file);
         
         // Subir imagen
-        const response = await fetch(`/subir_imagen/${personaId}`, {
+        const response = await fetch(`/api/personas/${personaId}`, {
             method: 'POST',
             body: formData
         });
@@ -299,7 +299,7 @@ async function eliminarImagenNodo(personaId) {
     try {
         console.log(`🗑️ Eliminando imagen de la persona ${personaId}...`);
         
-        const response = await fetch(`/eliminar_imagen/${personaId}`, {
+        const response = await fetch(`/api/personas/${personaId}`, {
             method: 'DELETE'
         });
         

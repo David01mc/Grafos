@@ -124,7 +124,7 @@ async function guardarPosicionesConLogs() {
 
         console.log('🌐 [DEBUG] Enviando POST a /guardar_posiciones...');
         
-        const response = await fetch('/guardar_posiciones', {
+        const response = await fetch('/api/posiciones', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -156,7 +156,7 @@ async function cargarPosicionesConLogs() {
     try {
         console.log('🌐 [DEBUG] Enviando GET a /obtener_posiciones...');
         
-        const response = await fetch('/obtener_posiciones');
+        const response = await fetch('/api/posiciones');
         console.log('📊 [DEBUG] Respuesta del servidor:', response.status, response.statusText);
 
         if (!response.ok) {

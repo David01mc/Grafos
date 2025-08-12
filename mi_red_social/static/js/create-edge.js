@@ -803,7 +803,7 @@ async function guardarNuevaRelacion() {
         console.log('📤 Enviando datos de relación:', Object.fromEntries(formData));
         
         // Enviar datos al servidor
-        const response = await fetch('/agregar_relacion', {
+        const response = await fetch('/api/relaciones', {
             method: 'POST',
             body: formData
         });

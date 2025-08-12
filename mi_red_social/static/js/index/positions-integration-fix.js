@@ -253,7 +253,7 @@ window.diagnosticoIntegracion = function() {
     }
     
     console.log('\n🧪 Test de conectividad:');
-    fetch('/obtener_posiciones')
+    fetch('/api/posiciones')
         .then(r => r.json())
         .then(data => {
             console.log('- Respuesta servidor:', data.posiciones ? `${Object.keys(data.posiciones).length} posiciones` : 'Sin posiciones');
