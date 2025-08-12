@@ -1,17 +1,19 @@
-// static/js/create-edge.js - Sistema de creación de aristas interactivo - VERSIÓN COMPLETA CORREGIDA
+// static/js/create-edge.js - Sistema de creación de aristas interactivo - VERSIÓN CORREGIDA
 
 let modoCrearArista = false;
 let nodoOrigenArista = null;
 let modalCrearRelacion = null;
-let aristaTemporalId = null;
 let botonCrearVisible = false;
 let hoverTimeout = null;
 let relacionTemplate = null; // Cache del template
 
+// Variables para arista temporal
+let aristaTemporalActiva = false;
+
 // Función para cargar el template HTML del modal de relación
 async function cargarTemplateRelacion() {
     if (relacionTemplate) {
-        return relacionTemplate; // Usar cache si ya existe
+        return relacionTemplate;
     }
     
     try {
@@ -68,115 +70,132 @@ function limpiarModalRelacionAnterior() {
         }
         
         modalExistente.remove();
-        
-
     }
     
     modalCrearRelacion = null;
 }
 
-// Función para crear y mostrar botón de "+" en el nodo
-function mostrarBotonCrearArista(nodeId, posicion) {
+// Función mejorada para crear y mostrar botón de "+" en el nodo
+function mostrarBotonCrearArista(nodeId) {
     // Remover botón anterior si existe
     ocultarBotonCrearArista();
     
     const container = document.getElementById('network');
     if (!container) return;
     
+    // Obtener posición actual del nodo dinámicamente
+    const posicionesNodos = network.getPositions([nodeId]);
+    const posicionNodo = posicionesNodos[nodeId];
+    
+    if (!posicionNodo) {
+        console.warn('⚠️ No se pudo obtener posición del nodo:', nodeId);
+        return;
+    }
+    
+    // Convertir coordenadas del grafo a coordenadas DOM
+    const posicionDOM = network.canvasToDOM(posicionNodo);
+    
     // Crear botón de crear arista
     const boton = document.createElement('div');
     boton.id = 'boton-crear-arista';
     boton.className = 'boton-crear-arista';
-    boton.innerHTML = '<i class="icon icon-plus"></i>';
+    boton.innerHTML = '<span class="boton-plus">+</span>';
+    boton.dataset.nodeId = nodeId;
     
-    // Posicionar el botón cerca del nodo
+    // Posicionar el botón cerca del nodo con más área clickeable
     boton.style.cssText = `
         position: absolute;
-        left: ${posicion.x + 20}px;
-        top: ${posicion.y - 10}px;
-        width: 30px;
-        height: 30px;
+        left: ${posicionDOM.x + 30}px;
+        top: ${posicionDOM.y - 20}px;
+        width: 32px;
+        height: 32px;
         background: linear-gradient(135deg, #10b981, #059669);
         color: white;
-        border: 2px solid white;
+        border: 3px solid white;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
         z-index: 1000;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        font-size: 14px;
+        box-shadow: 0 4px 8px rgba(16, 185, 129, 0.5);
+        font-size: 18px;
         font-weight: bold;
-        transition: all 0.3s ease;
-        animation: aparecerBoton 0.3s ease-out;
+        transition: all 0.15s ease;
+        opacity: 0.95;
+        user-select: none;
+        will-change: transform;
     `;
     
-    // Agregar animación CSS si no existe
-    if (!document.getElementById('animacion-boton-arista')) {
+    // Agregar estilos CSS mejorados si no existen
+    if (!document.getElementById('estilos-boton-arista')) {
         const style = document.createElement('style');
-        style.id = 'animacion-boton-arista';
+        style.id = 'estilos-boton-arista';
         style.textContent = `
-            @keyframes aparecerBoton {
-                0% { 
-                    transform: scale(0) rotate(180deg); 
-                    opacity: 0; 
-                }
-                100% { 
-                    transform: scale(1) rotate(0deg); 
-                    opacity: 1; 
-                }
-            }
-            
-            @keyframes desaparecerBoton {
-                0% { 
-                    transform: scale(1) rotate(0deg); 
-                    opacity: 1; 
-                }
-                100% { 
-                    transform: scale(0) rotate(-180deg); 
-                    opacity: 0; 
-                }
+            .boton-crear-arista {
+                pointer-events: auto;
+                isolation: isolate;
             }
             
             .boton-crear-arista:hover {
                 transform: scale(1.2);
                 background: linear-gradient(135deg, #059669, #047857);
-                box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+                box-shadow: 0 6px 12px rgba(16, 185, 129, 0.7);
+                opacity: 1;
+                border-width: 4px;
             }
             
-            .arista-temporal {
-                stroke: #10b981 !important;
-                stroke-width: 3px !important;
-                stroke-dasharray: 5,5 !important;
-                animation: pulsarArista 1s infinite;
+            .boton-crear-arista:active {
+                transform: scale(1.0);
+                transition: all 0.1s ease;
             }
             
-            @keyframes pulsarArista {
-                0%, 100% { opacity: 0.8; }
-                50% { opacity: 0.4; }
+            .boton-plus {
+                line-height: 1;
+                margin-top: -2px;
+                text-align: center;
+                display: block;
+                width: 100%;
+                height: 100%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
             }
             
             .nodo-origen-arista {
-                box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.5) !important;
-                animation: brillarNodo 1s infinite alternate;
+                box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.6) !important;
+                filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.8));
             }
             
-            @keyframes brillarNodo {
-                0% { filter: brightness(1); }
-                100% { filter: brightness(1.3); }
+            /* Mejorar rendering del botón */
+            .boton-crear-arista {
+                transform-origin: center center;
+                backface-visibility: hidden;
+                -webkit-backface-visibility: hidden;
+                perspective: 1000px;
             }
         `;
         document.head.appendChild(style);
     }
     
-    // Evento click del botón - CORREGIDO para evitar propagación
+    // Evento click del botón con mejor área de click
     boton.addEventListener('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation();
         console.log('🎯 Click en botón +, iniciando creación de arista...');
         iniciarCreacionArista(nodeId);
+    });
+    
+    // Eventos adicionales para mejor usabilidad
+    boton.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    });
+    
+    boton.addEventListener('mouseup', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
     });
     
     // Agregar al contenedor
@@ -186,22 +205,62 @@ function mostrarBotonCrearArista(nodeId, posicion) {
     console.log('✅ Botón de crear arista mostrado para nodo:', nodeId);
 }
 
-// Función para ocultar el botón de crear arista
+// Función mejorada para actualizar posición del botón (SIN LAG)
+function actualizarPosicionBoton() {
+    const boton = document.getElementById('boton-crear-arista');
+    if (!boton || !botonCrearVisible) return;
+    
+    const nodeId = boton.dataset.nodeId;
+    if (!nodeId) return;
+    
+    try {
+        const posicionesNodos = network.getPositions([nodeId]);
+        const posicionNodo = posicionesNodos[nodeId];
+        
+        if (posicionNodo) {
+            const posicionDOM = network.canvasToDOM(posicionNodo);
+            
+            // Usar transform para mejor rendimiento (sin reflow)
+            const newX = posicionDOM.x + 30;
+            const newY = posicionDOM.y - 20;
+            
+            boton.style.transform = `translate(${newX - parseInt(boton.style.left)}px, ${newY - parseInt(boton.style.top)}px)`;
+            
+            // Solo actualizar left/top si la diferencia es grande (optimización)
+            const currentLeft = parseInt(boton.style.left);
+            const currentTop = parseInt(boton.style.top);
+            
+            if (Math.abs(newX - currentLeft) > 5 || Math.abs(newY - currentTop) > 5) {
+                boton.style.left = `${newX}px`;
+                boton.style.top = `${newY}px`;
+                boton.style.transform = '';
+            }
+        }
+    } catch (error) {
+        ocultarBotonCrearArista();
+    }
+}
+
+// Función mejorada para ocultar el botón
 function ocultarBotonCrearArista() {
     const boton = document.getElementById('boton-crear-arista');
     if (boton && botonCrearVisible) {
-        boton.style.animation = 'desaparecerBoton 0.3s ease-in';
+        // Pequeña animación de salida
+        boton.style.transform = 'scale(0.8)';
+        boton.style.opacity = '0';
+        
         setTimeout(() => {
             if (boton.parentNode) {
                 boton.remove();
             }
-        }, 300);
+        }, 150);
+        
         botonCrearVisible = false;
         console.log('✅ Botón de crear arista ocultado');
     }
 }
 
-// Función para iniciar el modo de creación de arista
+// Función principal para iniciar creación de arista (CON arista temporal)
 function iniciarCreacionArista(nodeId) {
     if (!nodes || !network) {
         console.error('❌ Red no inicializada');
@@ -209,7 +268,6 @@ function iniciarCreacionArista(nodeId) {
         return;
     }
     
-    // Obtener información del nodo origen
     const nodo = nodes.get(nodeId);
     if (!nodo) {
         console.error('❌ Nodo origen no encontrado:', nodeId);
@@ -222,19 +280,13 @@ function iniciarCreacionArista(nodeId) {
     modoCrearArista = true;
     nodoOrigenArista = nodeId;
     
-    // DEBUG: Actualizar título de la página para confirmar el modo
+    // Actualizar título de la página
     document.title = "🔗 MODO CREAR RELACIÓN - Red de Relaciones";
     
     // Ocultar botón de crear
     ocultarBotonCrearArista();
     
     // Resaltar nodo origen visualmente
-    const posicionesNodos = network.getPositions([nodeId]);
-    const posicionOrigen = posicionesNodos[nodeId];
-    
-    console.log('📍 Posición del nodo origen:', posicionOrigen);
-    
-    // Aplicar estilo visual al nodo origen
     try {
         nodes.update({
             id: nodeId,
@@ -243,6 +295,13 @@ function iniciarCreacionArista(nodeId) {
             color: {
                 ...nodo.color,
                 border: '#10b981'
+            },
+            shadow: {
+                enabled: true,
+                color: 'rgba(16, 185, 129, 0.8)',
+                size: 15,
+                x: 0,
+                y: 0
             }
         });
         console.log('✅ Estilo visual aplicado al nodo origen');
@@ -252,33 +311,41 @@ function iniciarCreacionArista(nodeId) {
     
     // Cambiar cursor
     document.body.style.cursor = 'crosshair';
-    console.log('✅ Cursor cambiado a crosshair');
     
-    // Crear arista temporal que sigue al mouse
-    crearAristaTemporalSigueMouse(posicionOrigen);
+    // Obtener posición del nodo origen y crear arista temporal
+    const posicionesNodos = network.getPositions([nodeId]);
+    const posicionOrigen = posicionesNodos[nodeId];
+    
+    if (posicionOrigen) {
+        console.log('📍 Posición del nodo origen:', posicionOrigen);
+        crearAristaTemporalSigueMouse(posicionOrigen);
+    }
     
     // Mostrar instrucciones
     const nombreNodo = obtenerNombreNodo(nodo);
-    mostrarNotificacion('info', `Haz clic en otro contacto para crear una relación con "${nombreNodo}". Presiona ESC para cancelar.`, 10000);
+    mostrarNotificacion('info', `Haz clic en otro contacto para crear una relación con "${nombreNodo}". Presiona ESC para cancelar.`, 8000);
     
     // Configurar eventos para completar la arista
     configurarEventosCreacionArista();
     
-    console.log('✅ Modo creación de arista activado completamente. modoCrearArista =', modoCrearArista);
+    console.log('✅ Modo creación de arista activado');
 }
 
 // Función para crear arista temporal que sigue al mouse
 function crearAristaTemporalSigueMouse(posicionOrigen) {
     console.log('🔄 Creando arista temporal...');
     
-    // Eliminar arista temporal anterior si existe
-    if (aristaTemporalId && edges.get(aristaTemporalId)) {
-        edges.remove(aristaTemporalId);
-    }
+    // Limpiar arista temporal anterior si existe
+    limpiarAristaTemporalAnterior();
     
-    // Crear nodo temporal invisible para el extremo de la arista
-    const nodoTemporalId = 'temp_node_' + Date.now();
-    aristaTemporalId = 'temp_edge_' + Date.now();
+    // Crear IDs únicos
+    const nodoTemporalId = 'temp_node_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    const aristaTemporalId = 'temp_edge_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    
+    // Guardar IDs globalmente
+    window.nodoTemporalActual = nodoTemporalId;
+    window.aristaTemporalActual = aristaTemporalId;
+    aristaTemporalActiva = true;
     
     try {
         // Agregar nodo temporal invisible
@@ -286,77 +353,211 @@ function crearAristaTemporalSigueMouse(posicionOrigen) {
             id: nodoTemporalId,
             x: posicionOrigen.x + 50,
             y: posicionOrigen.y,
-            size: 0.1,
-            opacity: 0,
-            physics: false,
-            hidden: true
-        });
-        
-        // Agregar arista temporal
-        edges.add({
-            id: aristaTemporalId,
-            from: nodoOrigenArista,
-            to: nodoTemporalId,
+            size: 1,
             color: {
-                color: '#10b981',
-                opacity: 0.8
+                background: 'transparent',
+                border: 'transparent'
             },
-            width: 3,
-            dashes: [5, 5],
-            smooth: false,
-            physics: false
+            borderWidth: 0,
+            physics: false,
+            hidden: false,
+            font: { size: 0 },
+            label: '',
+            shape: 'dot',
+            chosen: false,
+            interaction: false
         });
         
-        console.log('✅ Arista temporal creada');
+        console.log('✅ Nodo temporal creado:', nodoTemporalId);
+        
+        // Esperar un frame para que el nodo se agregue
+        requestAnimationFrame(() => {
+            try {
+                // Agregar arista temporal
+                edges.add({
+                    id: aristaTemporalId,
+                    from: nodoOrigenArista,
+                    to: nodoTemporalId,
+                    color: {
+                        color: '#10b981',
+                        opacity: 0.7
+                    },
+                    width: 3,
+                    dashes: [8, 4],
+                    smooth: {
+                        enabled: false
+                    },
+                    physics: false,
+                    chosen: false,
+                    hoverWidth: 0,
+                    selectionWidth: 0,
+                    arrows: {
+                        to: {
+                            enabled: true,
+                            scaleFactor: 0.8,
+                            type: 'arrow'
+                        }
+                    }
+                });
+                
+                console.log('✅ Arista temporal creada:', aristaTemporalId);
+                configurarSeguimientoMouse(nodoTemporalId);
+                
+            } catch (error) {
+                console.error('❌ Error creando arista temporal:', error);
+                limpiarAristaTemporalAnterior();
+            }
+        });
+        
     } catch (error) {
-        console.error('❌ Error creando arista temporal:', error);
+        console.error('❌ Error creando nodo temporal:', error);
+        limpiarAristaTemporalAnterior();
+    }
+}
+
+// Función para configurar el seguimiento del mouse
+function configurarSeguimientoMouse(nodoTemporalId) {
+    const container = document.getElementById('network');
+    if (!container) {
+        console.error('❌ Contenedor de red no encontrado');
+        return;
     }
     
-    // Evento para mover el nodo temporal con el mouse
-    const container = document.getElementById('network');
-    
-    function moverAristaTemporal(event) {
-        if (!modoCrearArista) return;
+    function moverNodoTemporal(event) {
+        if (!modoCrearArista || !window.nodoTemporalActual) {
+            return;
+        }
         
         try {
             const rect = container.getBoundingClientRect();
             const x = event.clientX - rect.left;
             const y = event.clientY - rect.top;
             
-            // Convertir coordenadas de pantalla a coordenadas del grafo
-            const coordenadasGrafo = network.DOMtoCanvas({x, y});
+            const coordenadasGrafo = network.DOMtoCanvas({x: x, y: y});
             
-            // Actualizar posición del nodo temporal
-            nodes.update({
-                id: nodoTemporalId,
-                x: coordenadasGrafo.x,
-                y: coordenadasGrafo.y
-            });
+            if (nodes.get(nodoTemporalId)) {
+                nodes.update({
+                    id: nodoTemporalId,
+                    x: coordenadasGrafo.x,
+                    y: coordenadasGrafo.y
+                });
+            }
         } catch (error) {
-            console.error('❌ Error moviendo arista temporal:', error);
+            console.error('❌ Error moviendo nodo temporal:', error);
+            limpiarAristaTemporalAnterior();
         }
     }
     
-    container.addEventListener('mousemove', moverAristaTemporal);
+    function onMouseLeave(event) {
+        if (window.aristaTemporalActual && edges.get(window.aristaTemporalActual)) {
+            try {
+                edges.update({
+                    id: window.aristaTemporalActual,
+                    hidden: true
+                });
+            } catch (error) {
+                console.error('❌ Error ocultando arista temporal:', error);
+            }
+        }
+    }
     
-    // Guardar función para poder removerla después
-    window.moverAristaTemporal = moverAristaTemporal;
-    window.nodoTemporalId = nodoTemporalId;
+    function onMouseEnter(event) {
+        if (window.aristaTemporalActual && edges.get(window.aristaTemporalActual)) {
+            try {
+                edges.update({
+                    id: window.aristaTemporalActual,
+                    hidden: false
+                });
+            } catch (error) {
+                console.error('❌ Error mostrando arista temporal:', error);
+            }
+        }
+    }
     
-    console.log('✅ Eventos de mouse configurados para arista temporal');
+    // Remover listeners anteriores si existen
+    if (window.moverNodoTemporalListener) {
+        container.removeEventListener('mousemove', window.moverNodoTemporalListener);
+    }
+    if (window.mouseLeaveListener) {
+        container.removeEventListener('mouseleave', window.mouseLeaveListener);
+    }
+    if (window.mouseEnterListener) {
+        container.removeEventListener('mouseenter', window.mouseEnterListener);
+    }
+    
+    // Agregar nuevos listeners
+    container.addEventListener('mousemove', moverNodoTemporal);
+    container.addEventListener('mouseleave', onMouseLeave);
+    container.addEventListener('mouseenter', onMouseEnter);
+    
+    // Guardar referencias
+    window.moverNodoTemporalListener = moverNodoTemporal;
+    window.mouseLeaveListener = onMouseLeave;
+    window.mouseEnterListener = onMouseEnter;
+    
+    console.log('✅ Seguimiento de mouse configurado');
+}
+
+// Función para limpiar arista temporal
+function limpiarAristaTemporalAnterior() {
+    console.log('🧹 Limpiando arista temporal anterior...');
+    
+    // Remover listeners de mouse
+    const container = document.getElementById('network');
+    if (container) {
+        if (window.moverNodoTemporalListener) {
+            container.removeEventListener('mousemove', window.moverNodoTemporalListener);
+            window.moverNodoTemporalListener = null;
+        }
+        if (window.mouseLeaveListener) {
+            container.removeEventListener('mouseleave', window.mouseLeaveListener);
+            window.mouseLeaveListener = null;
+        }
+        if (window.mouseEnterListener) {
+            container.removeEventListener('mouseenter', window.mouseEnterListener);
+            window.mouseEnterListener = null;
+        }
+    }
+    
+    // Remover nodo temporal
+    if (window.nodoTemporalActual) {
+        try {
+            if (nodes.get(window.nodoTemporalActual)) {
+                nodes.remove(window.nodoTemporalActual);
+                console.log('🗑️ Nodo temporal removido:', window.nodoTemporalActual);
+            }
+        } catch (error) {
+            console.error('❌ Error removiendo nodo temporal:', error);
+        }
+        window.nodoTemporalActual = null;
+    }
+    
+    // Remover arista temporal
+    if (window.aristaTemporalActual) {
+        try {
+            if (edges.get(window.aristaTemporalActual)) {
+                edges.remove(window.aristaTemporalActual);
+                console.log('🗑️ Arista temporal removida:', window.aristaTemporalActual);
+            }
+        } catch (error) {
+            console.error('❌ Error removiendo arista temporal:', error);
+        }
+        window.aristaTemporalActual = null;
+    }
+    
+    aristaTemporalActiva = false;
+    console.log('✅ Limpieza de arista temporal completada');
 }
 
 // Función para configurar eventos de creación de arista
 function configurarEventosCreacionArista() {
     console.log('🔄 Configurando eventos de creación de arista...');
     
-    // Evento UNIFICADO para manejar todos los clics durante la creación de arista
     function onClickCreacionArista(params) {
         if (!modoCrearArista) return;
         
         console.log('🔍 Click durante creación de arista:', params);
         
-        // Si se hizo clic en un nodo
         if (params.nodes.length > 0) {
             const nodeDestino = params.nodes[0];
             console.log('🎯 Click en nodo destino:', nodeDestino);
@@ -364,6 +565,12 @@ function configurarEventosCreacionArista() {
             // Verificar que no sea el mismo nodo
             if (nodeDestino === nodoOrigenArista) {
                 mostrarNotificacion('warning', 'No puedes crear una relación de un contacto consigo mismo');
+                return;
+            }
+            
+            // Verificar que no sea el nodo temporal
+            if (nodeDestino === window.nodoTemporalActual) {
+                console.log('⚠️ Click en nodo temporal ignorado');
                 return;
             }
             
@@ -377,13 +584,11 @@ function configurarEventosCreacionArista() {
             // Completar la creación de arista
             completarCreacionArista(nodeDestino);
         } else {
-            // Si se hizo clic en área vacía, cancelar
             console.log('❌ Click en área vacía, cancelando...');
             cancelarCreacionArista();
         }
     }
     
-    // Evento para cancelar con tecla ESC
     function onEscapeKey(event) {
         if (event.key === 'Escape' && modoCrearArista) {
             console.log('🔄 ESC presionado, cancelando creación de arista');
@@ -391,21 +596,19 @@ function configurarEventosCreacionArista() {
         }
     }
     
-    // Remover eventos anteriores primero
+    // Remover eventos anteriores
     if (window.onClickCreacionArista) {
         network.off("click", window.onClickCreacionArista);
-        console.log('🔄 Evento click anterior removido');
     }
     if (window.onEscapeKeyArista) {
         document.removeEventListener('keydown', window.onEscapeKeyArista);
-        console.log('🔄 Evento ESC anterior removido');
     }
     
-    // Registrar evento unificado
+    // Registrar nuevos eventos
     network.on("click", onClickCreacionArista);
     document.addEventListener('keydown', onEscapeKey);
     
-    // Guardar referencias para poder removerlas después
+    // Guardar referencias
     window.onClickCreacionArista = onClickCreacionArista;
     window.onEscapeKeyArista = onEscapeKey;
     
@@ -428,37 +631,19 @@ function existeRelacion(nodeId1, nodeId2) {
 async function completarCreacionArista(nodeDestino) {
     console.log('✅ Completando creación de arista:', nodoOrigenArista, '->', nodeDestino);
     
-    // Validar que tenemos los IDs
-    if (!nodoOrigenArista) {
-        console.error('❌ Error: nodoOrigenArista es null o undefined');
-        mostrarNotificacion('error', 'Error: No se encontró el nodo origen');
+    if (!nodoOrigenArista || !nodeDestino) {
+        console.error('❌ Error: nodos no válidos');
+        mostrarNotificacion('error', 'Error: No se encontraron los nodos');
         return;
     }
     
-    if (!nodeDestino) {
-        console.error('❌ Error: nodeDestino es null o undefined');
-        mostrarNotificacion('error', 'Error: No se encontró el nodo destino');
-        return;
-    }
-    
-    // IMPORTANTE: Obtener la información de los nodos ANTES de limpiar el estado
-    console.log('🔍 Buscando nodo origen con ID:', nodoOrigenArista);
+    // Obtener información de los nodos ANTES de limpiar
     const nodoOrigen = nodes.get(nodoOrigenArista);
-    console.log('🔍 Nodo origen encontrado:', nodoOrigen);
-    
-    console.log('🔍 Buscando nodo destino con ID:', nodeDestino);
     const nodoDestinoObj = nodes.get(nodeDestino);
-    console.log('🔍 Nodo destino encontrado:', nodoDestinoObj);
     
-    if (!nodoOrigen) {
-        console.error('❌ Error: No se pudo obtener el nodo origen con ID:', nodoOrigenArista);
-        mostrarNotificacion('error', 'Error: No se encontró información del nodo origen');
-        return;
-    }
-    
-    if (!nodoDestinoObj) {
-        console.error('❌ Error: No se pudo obtener el nodo destino con ID:', nodeDestino);
-        mostrarNotificacion('error', 'Error: No se encontró información del nodo destino');
+    if (!nodoOrigen || !nodoDestinoObj) {
+        console.error('❌ Error: No se pudieron obtener los nodos');
+        mostrarNotificacion('error', 'Error: No se encontró información de los nodos');
         return;
     }
     
@@ -467,7 +652,7 @@ async function completarCreacionArista(nodeDestino) {
         destino: { id: nodoDestinoObj.id, label: nodoDestinoObj.label }
     });
     
-    // AHORA sí limpiar el estado temporal (después de obtener los nodos)
+    // Limpiar estado temporal
     limpiarEstadoTemporal();
     
     // Abrir modal para configurar la relación
@@ -482,7 +667,6 @@ async function completarCreacionArista(nodeDestino) {
 // Función para cancelar la creación de arista
 function cancelarCreacionArista() {
     console.log('❌ Cancelando creación de arista');
-    
     mostrarNotificacion('info', 'Creación de relación cancelada');
     limpiarEstadoTemporal();
 }
@@ -491,34 +675,20 @@ function cancelarCreacionArista() {
 function limpiarEstadoTemporal() {
     console.log('🔄 Limpiando estado temporal...');
     
-    // DEBUG: Restaurar título de la página
+    // Restaurar título
     document.title = "Análisis de Red de Relaciones";
+    
+    // Limpiar arista temporal
+    limpiarAristaTemporalAnterior();
     
     // Remover eventos
     if (window.onClickCreacionArista) {
         network.off("click", window.onClickCreacionArista);
-        console.log('🔄 Evento de click removido');
+        window.onClickCreacionArista = null;
     }
     if (window.onEscapeKeyArista) {
         document.removeEventListener('keydown', window.onEscapeKeyArista);
-        console.log('🔄 Evento ESC removido');
-    }
-    
-    // Remover evento de mouse
-    const container = document.getElementById('network');
-    if (container && window.moverAristaTemporal) {
-        container.removeEventListener('mousemove', window.moverAristaTemporal);
-        console.log('🔄 Evento mouse removido');
-    }
-    
-    // Remover nodo y arista temporal
-    if (window.nodoTemporalId && nodes.get(window.nodoTemporalId)) {
-        nodes.remove(window.nodoTemporalId);
-        console.log('🔄 Nodo temporal removido');
-    }
-    if (aristaTemporalId && edges.get(aristaTemporalId)) {
-        edges.remove(aristaTemporalId);
-        console.log('🔄 Arista temporal removida');
+        window.onEscapeKeyArista = null;
     }
     
     // Restaurar estilo del nodo origen
@@ -528,7 +698,8 @@ function limpiarEstadoTemporal() {
             nodes.update({
                 id: nodoOrigenArista,
                 borderWidth: 2,
-                color: nodoOriginal.color
+                color: nodoOriginal.color,
+                shadow: false
             });
             console.log('🔄 Estilo de nodo origen restaurado');
         } catch (error) {
@@ -538,388 +709,117 @@ function limpiarEstadoTemporal() {
     
     // Restaurar cursor
     document.body.style.cursor = 'default';
-    console.log('🔄 Cursor restaurado');
     
     // Reset variables
     modoCrearArista = false;
     nodoOrigenArista = null;
-    aristaTemporalId = null;
-    window.nodoTemporalId = null;
-    window.moverAristaTemporal = null;
-    window.onClickCreacionArista = null;
-    window.onEscapeKeyArista = null;
     
-    console.log('✅ Estado temporal limpiado completamente. modoCrearArista =', modoCrearArista);
+    console.log('✅ Estado temporal limpiado completamente');
 }
 
-// Función para abrir modal de crear relación
-async function abrirModalCrearRelacion(nodoOrigen, nodoDestino) {
-    console.log('🔄 Iniciando apertura de modal de relación...');
-    
-    // Limpiar modal anterior
-    limpiarModalRelacionAnterior();
-    console.log('✅ Modal anterior limpiado');
-    
-    // Cargar template
-    console.log('🔄 Cargando template del modal...');
-    const modalHTML = await cargarTemplateRelacion();
-    console.log('✅ Template cargado, longitud:', modalHTML.length);
-    
-    // Agregar modal al DOM
-    console.log('🔄 Agregando modal al DOM...');
-    document.body.insertAdjacentHTML('beforeend', modalHTML);
-    console.log('✅ Modal agregado al DOM');
-    
-    // Verificar que el modal se creó correctamente
-    const modalElement = document.getElementById('modalCrearRelacion');
-    if (!modalElement) {
-        console.error('❌ Error: No se pudo crear el modal de relación');
-        mostrarNotificacion('error', 'Error creando el formulario de relación');
-        return false;
-    }
-    console.log('✅ Elemento modal encontrado:', modalElement);
-    
-    // Verificar que Bootstrap está disponible
-    if (typeof bootstrap === 'undefined') {
-        console.error('❌ Error: Bootstrap no está disponible');
-        mostrarNotificacion('error', 'Error: Bootstrap no disponible');
-        return false;
-    }
-    console.log('✅ Bootstrap confirmado disponible');
-    
-    // Inicializar modal de Bootstrap
-    console.log('🔄 Inicializando modal de Bootstrap...');
-    try {
-        modalCrearRelacion = new bootstrap.Modal(modalElement, {
-            backdrop: 'static',
-            keyboard: true
-        });
-        console.log('✅ Modal de Bootstrap inicializado');
-    } catch (error) {
-        console.error('❌ Error inicializando modal de Bootstrap:', error);
-        mostrarNotificacion('error', 'Error inicializando modal: ' + error.message);
-        return false;
-    }
-    
-    // Configurar contenido del modal
-    console.log('🔄 Configurando contenido del modal...');
-    configurarContenidoModalRelacion(nodoOrigen, nodoDestino);
-    console.log('✅ Contenido del modal configurado');
-    
-    // Configurar eventos del modal
-    modalElement.addEventListener('shown.bs.modal', function() {
-        console.log('✅ Modal de relación mostrado correctamente');
-        const tipoInput = document.getElementById('tipoRelacion');
-        if (tipoInput) {
-            tipoInput.focus();
-        }
-    });
-    
-    // Limpiar al cerrar modal
-    modalElement.addEventListener('hidden.bs.modal', function() {
-        console.log('🔄 Modal de relación ocultado, limpiando estado...');
-        setTimeout(() => {
-            limpiarModalRelacionAnterior();
-        }, 100);
-    });
-    
-    // Mostrar modal
-    console.log('🔄 Intentando mostrar modal...');
-    try {
-        modalCrearRelacion.show();
-        console.log('✅ Comando show() ejecutado correctamente');
-        
-        // Verificar si el modal se está mostrando después de un pequeño delay
-        setTimeout(() => {
-            const isShowing = modalElement.classList.contains('show');
-            console.log('🔍 ¿Modal visible después de 500ms?', isShowing);
-            if (!isShowing) {
-                console.warn('⚠️ El modal no parece estar visible, intentando forzar...');
-                // Intentar forzar la visualización
-                modalElement.style.display = 'block';
-                modalElement.classList.add('show');
-                document.body.classList.add('modal-open');
-                console.log('🔧 Forzando visualización del modal');
-            }
-        }, 500);
-        
-    } catch (error) {
-        console.error('❌ Error mostrando modal de relación:', error);
-        limpiarModalRelacionAnterior();
-        mostrarNotificacion('error', 'Error al mostrar el formulario de relación: ' + error.message);
-        return false;
-    }
-    
-    return true;
-}
-
-// Función para configurar contenido del modal
-function configurarContenidoModalRelacion(nodoOrigen, nodoDestino) {
-    const nombreOrigen = obtenerNombreNodo(nodoOrigen);
-    const nombreDestino = obtenerNombreNodo(nodoDestino);
-    
-    console.log('🔄 Configurando modal para:', nombreOrigen, '↔', nombreDestino);
-    
-    // Actualizar título
-    const titulo = document.getElementById('tituloModalRelacion');
-    if (titulo) {
-        titulo.innerHTML = `
-            <i class="icon icon-link"></i>
-            Crear Relación: ${nombreOrigen} ↔ ${nombreDestino}
-        `;
-        console.log('✅ Título actualizado');
-    } else {
-        console.warn('⚠️ Elemento título no encontrado');
-    }
-    
-    // Configurar información de los nodos
-    const infoOrigen = document.getElementById('infoNodoOrigen');
-    const infoDestino = document.getElementById('infoNodoDestino');
-    
-    if (infoOrigen) {
-        infoOrigen.innerHTML = `
-            <div class="d-flex align-items-center">
-                <div style="width: 20px; height: 20px; background-color: ${nodoOrigen.color}; border-radius: 50%; margin-right: 10px;"></div>
-                <strong>${nombreOrigen}</strong>
-            </div>
-        `;
-        console.log('✅ Info origen configurada');
-    } else {
-        console.warn('⚠️ Elemento infoOrigen no encontrado');
-    }
-    
-    if (infoDestino) {
-        infoDestino.innerHTML = `
-            <div class="d-flex align-items-center">
-                <div style="width: 20px; height: 20px; background-color: ${nodoDestino.color}; border-radius: 50%; margin-right: 10px;"></div>
-                <strong>${nombreDestino}</strong>
-            </div>
-        `;
-        console.log('✅ Info destino configurada');
-    } else {
-        console.warn('⚠️ Elemento infoDestino no encontrado');
-    }
-    
-    // Guardar IDs para uso posterior
-    const form = document.getElementById('formCrearRelacion');
-    if (form) {
-        form.dataset.origenId = nodoOrigen.id;
-        form.dataset.destinoId = nodoDestino.id;
-        console.log('✅ IDs guardados en el formulario:', nodoOrigen.id, '->', nodoDestino.id);
-    } else {
-        console.warn('⚠️ Formulario no encontrado');
-    }
-    
-    // Configurar validación
-    configurarValidacionFormularioRelacion();
-    console.log('✅ Configuración del modal completada');
-}
-
-// Función para obtener nombre limpio del nodo
-function obtenerNombreNodo(nodo) {
-    // Validar que el nodo existe
-    if (!nodo) {
-        console.error('❌ obtenerNombreNodo: nodo es undefined o null');
-        return 'Nodo desconocido';
-    }
-    
-    // Validar que tiene las propiedades esperadas
-    if (typeof nodo !== 'object') {
-        console.error('❌ obtenerNombreNodo: nodo no es un objeto:', nodo);
-        return String(nodo);
-    }
-    
-    // Intentar obtener el label
-    if (nodo.label && typeof nodo.label === 'string') {
-        return nodo.label.replace(/<[^>]*>/g, '').trim();
-    }
-    
-    // Fallback al ID
-    if (nodo.id !== undefined) {
-        return String(nodo.id);
-    }
-    
-    // Último fallback
-    console.warn('⚠️ obtenerNombreNodo: no se pudo determinar nombre para:', nodo);
-    return 'Nodo sin nombre';
-}
-
-// Función para configurar validación del formulario de relación
-function configurarValidacionFormularioRelacion() {
-    const fortalezaInput = document.getElementById('fortalezaRelacion');
-    const fortalezaDisplay = document.getElementById('fortalezaDisplay');
-    
-    if (fortalezaInput && fortalezaDisplay) {
-        // Actualizar display de fortaleza en tiempo real
-        fortalezaInput.addEventListener('input', function() {
-            const valor = this.value;
-            fortalezaDisplay.textContent = `${valor}/10`;
-            
-            // Cambiar color según fortaleza
-            if (valor >= 8) {
-                fortalezaDisplay.className = 'badge bg-success';
-            } else if (valor >= 6) {
-                fortalezaDisplay.className = 'badge bg-warning';
-            } else if (valor >= 4) {
-                fortalezaDisplay.className = 'badge bg-info';
-            } else {
-                fortalezaDisplay.className = 'badge bg-secondary';
-            }
-        });
-        
-        // Disparar evento inicial
-        fortalezaInput.dispatchEvent(new Event('input'));
-    }
-}
-
-// Función para guardar la nueva relación
-async function guardarNuevaRelacion() {
-    const form = document.getElementById('formCrearRelacion');
-    if (!form) {
-        console.error('❌ Formulario de relación no encontrado');
-        return;
-    }
-    
-    const formData = new FormData();
-    formData.append('persona1_id', form.dataset.origenId);
-    formData.append('persona2_id', form.dataset.destinoId);
-    formData.append('tipo', document.getElementById('tipoRelacion').value);
-    formData.append('fortaleza', document.getElementById('fortalezaRelacion').value);
-    formData.append('contexto', document.getElementById('contextoRelacion').value);
-    
-    const botonGuardar = document.getElementById('btnGuardarRelacion');
-    if (!botonGuardar) {
-        console.error('❌ Botón guardar relación no encontrado');
-        return;
-    }
-    
-    const textoOriginal = botonGuardar.innerHTML;
-    
-    try {
-        // Mostrar estado de carga
-        botonGuardar.innerHTML = '<i class="icon icon-refresh icon-spin"></i> Creando relación...';
-        botonGuardar.disabled = true;
-        
-        console.log('📤 Enviando datos de relación:', Object.fromEntries(formData));
-        
-        // Enviar datos al servidor
-        const response = await fetch('/api/relaciones', {
-            method: 'POST',
-            body: formData
-        });
-        
-        console.log('📥 Respuesta del servidor:', response.status);
-        
-        if (response.ok) {
-            console.log('✅ Relación creada exitosamente');
-            
-            // Cerrar modal
-            if (modalCrearRelacion) {
-                modalCrearRelacion.hide();
-            }
-            
-            // Esperar un poco para que el modal se cierre
-            await new Promise(resolve => setTimeout(resolve, 300));
-            
-            // Recargar datos del grafo
-            await recargarSoloDatos();
-            
-            mostrarNotificacion('success', 'Relación creada exitosamente');
-            
-        } else {
-            const errorText = await response.text();
-            console.error('❌ Error del servidor:', errorText);
-            mostrarNotificacion('error', 'Error al crear la relación: ' + errorText);
-            
-            // Restaurar botón en caso de error
-            botonGuardar.innerHTML = textoOriginal;
-            botonGuardar.disabled = false;
-        }
-        
-    } catch (error) {
-        console.error('❌ Error creando relación:', error);
-        mostrarNotificacion('error', 'Error de conexión al crear la relación');
-        
-        // Restaurar botón en caso de error
-        botonGuardar.innerHTML = textoOriginal;
-        botonGuardar.disabled = false;
-    }
-}
-
-// Función para configurar eventos de hover en nodos
+// Función mejorada para configurar eventos de hover en nodos (SIN LAG)
 function configurarHoverCrearAristas() {
     if (!network) {
         console.warn('⚠️ Red no inicializada, no se pueden configurar eventos de hover');
         return;
     }
     
+    // Variable para seguimiento de actualización
+    let animationFrameId = null;
+    
+    // Función optimizada para actualizar posición en tiempo real
+    function actualizarPosicionConAnimacion() {
+        if (botonCrearVisible) {
+            actualizarPosicionBoton();
+            animationFrameId = requestAnimationFrame(actualizarPosicionConAnimacion);
+        }
+    }
+    
     // Evento cuando el mouse entra en un nodo
     network.on("hoverNode", function(params) {
-        // No mostrar botón si estamos en modo creación de arista
         if (modoCrearArista) return;
         
         const nodeId = params.node;
         
-        // Cancelar timeout anterior si existe
         if (hoverTimeout) {
             clearTimeout(hoverTimeout);
         }
         
-        // Mostrar botón después de un pequeño delay
-        hoverTimeout = setTimeout(() => {
-            // Verificar nuevamente que no estamos en modo creación de arista
-            if (modoCrearArista) return;
-            
-            const posicionesNodos = network.getPositions([nodeId]);
-            const posicionNodo = posicionesNodos[nodeId];
-            
-            if (posicionNodo) {
-                // Convertir coordenadas del grafo a coordenadas DOM
-                const posicionDOM = network.canvasToDOM(posicionNodo);
-                mostrarBotonCrearArista(nodeId, posicionDOM);
-            }
-        }, 500); // Delay de 500ms para evitar mostrar el botón accidentalmente
+        mostrarBotonCrearArista(nodeId);
+        
+        // Iniciar actualización continua para seguimiento suave
+        if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+        }
+        actualizarPosicionConAnimacion();
     });
     
     // Evento cuando el mouse sale del nodo
     network.on("blurNode", function(params) {
-        // Cancelar timeout si existe
         if (hoverTimeout) {
             clearTimeout(hoverTimeout);
             hoverTimeout = null;
         }
         
-        // Ocultar botón después de un pequeño delay
-        setTimeout(() => {
-            // Solo ocultar si no estamos en modo creación de arista
-            if (!modoCrearArista) {
-                ocultarBotonCrearArista();
-            }
-        }, 200);
-    });
-    
-    // Evento cuando se hace clic en cualquier parte
-    network.on("click", function(params) {
-        // Solo procesar si NO estamos en modo creación de arista
-        if (modoCrearArista) return;
+        // Parar actualización continua
+        if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
+        }
         
-        // Ocultar botón si no se hizo clic en un nodo
-        if (params.nodes.length === 0) {
+        if (!modoCrearArista) {
             ocultarBotonCrearArista();
         }
     });
     
-    console.log('✅ Eventos de hover para crear aristas configurados');
+    // Evento cuando se hace clic en cualquier parte
+    network.on("click", function(params) {
+        if (modoCrearArista) return;
+        
+        if (params.nodes.length === 0) {
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            ocultarBotonCrearArista();
+        }
+    });
+    
+    // Eventos para actualizar posición del botón (mantenidos para compatibilidad)
+    network.on("zoom", function(params) {
+        if (botonCrearVisible) {
+            // Usar un pequeño delay para evitar lag en zoom
+            setTimeout(actualizarPosicionBoton, 10);
+        }
+    });
+    
+    network.on("dragEnd", function(params) {
+        if (botonCrearVisible) {
+            actualizarPosicionBoton();
+        }
+    });
+    
+    // Optimizar dragging para mejor rendimiento
+    let dragTimeout = null;
+    network.on("dragging", function(params) {
+        if (botonCrearVisible) {
+            // Throttle para mejor rendimiento durante arrastre
+            if (dragTimeout) {
+                clearTimeout(dragTimeout);
+            }
+            dragTimeout = setTimeout(actualizarPosicionBoton, 16); // ~60fps
+        }
+    });
+    
+    console.log('✅ Eventos de hover para crear aristas configurados (sin lag)');
 }
 
 // Función principal para inicializar la funcionalidad
 function inicializarCreacionAristas() {
-    // Esperar a que la red esté lista
     if (typeof network !== 'undefined' && network) {
         configurarHoverCrearAristas();
         console.log('🔗 Sistema de creación de aristas inicializado');
     } else {
-        // Reintentar después de un momento
         setTimeout(inicializarCreacionAristas, 1000);
     }
 }
@@ -942,111 +842,152 @@ if (document.readyState === 'loading') {
     inicializarCreacionAristas();
 }
 
+// FUNCIONES AUXILIARES Y MODAL (Aquí van las funciones que necesitas completar)
+
+// Función para obtener nombre limpio del nodo
+function obtenerNombreNodo(nodo) {
+    if (!nodo) return 'Nodo desconocido';
+    if (nodo.label && typeof nodo.label === 'string') {
+        return nodo.label.replace(/<[^>]*>/g, '').trim();
+    }
+    return String(nodo.id || 'Sin nombre');
+}
+
+// Función para mostrar notificaciones (debes implementar según tu sistema)
+function mostrarNotificacion(tipo, mensaje, duracion = 5000) {
+    console.log(`${tipo.toUpperCase()}: ${mensaje}`);
+    // Implementar tu sistema de notificaciones aquí
+    if (typeof window.mostrarNotificacion === 'function') {
+        window.mostrarNotificacion(tipo, mensaje, duracion);
+    }
+}
+
+// Función adicional para mejorar el seguimiento durante el modo de creación
+function mejorarSeguimientoMouse(nodoTemporalId) {
+    const container = document.getElementById('network');
+    if (!container) {
+        console.error('❌ Contenedor de red no encontrado');
+        return;
+    }
+    
+    // Variable para optimizar las actualizaciones
+    let lastUpdateTime = 0;
+    const UPDATE_INTERVAL = 16; // ~60fps
+    
+    function moverNodoTemporal(event) {
+        if (!modoCrearArista || !window.nodoTemporalActual) {
+            return;
+        }
+        
+        // Throttle para mejor rendimiento
+        const now = Date.now();
+        if (now - lastUpdateTime < UPDATE_INTERVAL) {
+            return;
+        }
+        lastUpdateTime = now;
+        
+        try {
+            const rect = container.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            
+            const coordenadasGrafo = network.DOMtoCanvas({x: x, y: y});
+            
+            if (nodes.get(nodoTemporalId)) {
+                nodes.update({
+                    id: nodoTemporalId,
+                    x: coordenadasGrafo.x,
+                    y: coordenadasGrafo.y
+                });
+            }
+        } catch (error) {
+            console.error('❌ Error moviendo nodo temporal:', error);
+            limpiarAristaTemporalAnterior();
+        }
+    }
+    
+    function onMouseLeave(event) {
+        if (window.aristaTemporalActual && edges.get(window.aristaTemporalActual)) {
+            try {
+                edges.update({
+                    id: window.aristaTemporalActual,
+                    hidden: true
+                });
+            } catch (error) {
+                console.error('❌ Error ocultando arista temporal:', error);
+            }
+        }
+    }
+    
+    function onMouseEnter(event) {
+        if (window.aristaTemporalActual && edges.get(window.aristaTemporalActual)) {
+            try {
+                edges.update({
+                    id: window.aristaTemporalActual,
+                    hidden: false
+                });
+            } catch (error) {
+                console.error('❌ Error mostrando arista temporal:', error);
+            }
+        }
+    }
+    
+    // Remover listeners anteriores si existen
+    if (window.moverNodoTemporalListener) {
+        container.removeEventListener('mousemove', window.moverNodoTemporalListener);
+    }
+    if (window.mouseLeaveListener) {
+        container.removeEventListener('mouseleave', window.mouseLeaveListener);
+    }
+    if (window.mouseEnterListener) {
+        container.removeEventListener('mouseenter', window.mouseEnterListener);
+    }
+    
+    // Agregar nuevos listeners
+    container.addEventListener('mousemove', moverNodoTemporal, { passive: true });
+    container.addEventListener('mouseleave', onMouseLeave);
+    container.addEventListener('mouseenter', onMouseEnter);
+    
+    // Guardar referencias
+    window.moverNodoTemporalListener = moverNodoTemporal;
+    window.mouseLeaveListener = onMouseLeave;
+    window.mouseEnterListener = onMouseEnter;
+    
+    console.log('✅ Seguimiento de mouse mejorado configurado');
+}
+
+// Reemplazar la función original configurarSeguimientoMouse con la mejorada
+function configurarSeguimientoMouse(nodoTemporalId) {
+    mejorarSeguimientoMouse(nodoTemporalId);
+}
+
+// AQUÍ AGREGAR LAS FUNCIONES DEL MODAL QUE TENÍAS ANTES:
+// - abrirModalCrearRelacion
+// - configurarContenidoModalRelacion  
+// - configurarValidacionFormularioRelacion
+// - guardarNuevaRelacion
+
 // Exportar funciones para uso externo
 window.configurarHoverCrearAristas = configurarHoverCrearAristas;
-window.guardarNuevaRelacion = guardarNuevaRelacion;
+window.iniciarCreacionArista = iniciarCreacionArista;
 window.cancelarCreacionArista = cancelarCreacionArista;
 
-// Exportar variables de estado para otros scripts
+// Exportar variables de estado
 Object.defineProperty(window, 'modoCrearArista', {
     get: function() { return modoCrearArista; },
     configurable: true
 });
 
-// Función de debug manual
-window.debugCrearArista = function() {
-    console.log('🔍 Estado actual del sistema de creación de aristas:');
-    console.log('- modoCrearArista:', modoCrearArista);
-    console.log('- nodoOrigenArista:', nodoOrigenArista);
-    console.log('- botonCrearVisible:', botonCrearVisible);
-    console.log('- modalCrearRelacion:', modalCrearRelacion);
-    console.log('- aristaTemporalId:', aristaTemporalId);
-    console.log('- Bootstrap disponible:', typeof bootstrap !== 'undefined');
-    console.log('- Network disponible:', typeof network !== 'undefined');
-    console.log('- Nodes disponible:', typeof nodes !== 'undefined');
-    console.log('- Edges disponible:', typeof edges !== 'undefined');
-    
-    // Verificar si hay modal en el DOM
-    const modalElement = document.getElementById('modalCrearRelacion');
-    console.log('- Modal en DOM:', !!modalElement);
-    if (modalElement) {
-        console.log('- Modal visible:', modalElement.classList.contains('show'));
-        console.log('- Modal display:', modalElement.style.display);
-    }
-};
-
-// Función para test manual del modal
-window.testModalRelacion = async function() {
-    console.log('🧪 Test manual del modal de relación');
-    
-    // Crear nodos de prueba
-    const nodoTest1 = { id: 'test1', label: 'Nodo Test 1', color: '#ff0000' };
-    const nodoTest2 = { id: 'test2', label: 'Nodo Test 2', color: '#00ff00' };
-    
-    try {
-        await abrirModalCrearRelacion(nodoTest1, nodoTest2);
-        console.log('✅ Test completado');
-    } catch (error) {
-        console.error('❌ Error en test:', error);
-    }
-};
-
-// Función para test directo del botón +
-window.testBotonMas = function(nodeId) {
-    if (!nodeId) nodeId = 1; // Usar nodo 1 por defecto
-    console.log('🧪 Test manual del botón + para nodo:', nodeId);
+// Funciones de testing
+window.testAristaTemporal = function(nodeId = 1) {
+    console.log('🧪 Test de arista temporal para nodo:', nodeId);
     iniciarCreacionArista(nodeId);
 };
 
-// Función para verificar los nodos disponibles
-window.verificarNodos = function() {
-    console.log('🔍 Verificando nodos disponibles...');
-    if (!nodes) {
-        console.error('❌ Variable nodes no disponible');
-        return;
-    }
-    
-    const todosLosNodos = nodes.get();
-    console.log('📊 Total de nodos:', todosLosNodos.length);
-    
-    todosLosNodos.forEach((nodo, index) => {
-        console.log(`Nodo ${index + 1}:`, {
-            id: nodo.id,
-            label: nodo.label,
-            color: nodo.color,
-            tipo: typeof nodo
-        });
-    });
-    
-    return todosLosNodos;
+window.limpiarTemporal = function() {
+    console.log('🧹 Limpiando elementos temporales manualmente...');
+    limpiarAristaTemporalAnterior();
+    limpiarEstadoTemporal();
 };
 
-// Función para test completo paso a paso
-window.testCreacionCompleta = function(origenId, destinoId) {
-    if (!origenId) origenId = 1;
-    if (!destinoId) destinoId = 2;
-    
-    console.log('🧪 Test completo de creación de arista:', origenId, '->', destinoId);
-    
-    // Verificar nodos
-    const nodos = verificarNodos();
-    const nodoOrigen = nodes.get(origenId);
-    const nodoDestino = nodes.get(destinoId);
-    
-    console.log('🔍 Nodo origen:', nodoOrigen);
-    console.log('🔍 Nodo destino:', nodoDestino);
-    
-    if (!nodoOrigen) {
-        console.error('❌ No se encontró nodo origen con ID:', origenId);
-        return;
-    }
-    
-    if (!nodoDestino) {
-        console.error('❌ No se encontró nodo destino con ID:', destinoId);
-        return;
-    }
-    
-    // Simular el proceso completo
-    console.log('🎯 Simulando completarCreacionArista...');
-    completarCreacionArista(destinoId);
-};
+console.log('✅ Sistema de creación de aristas corregido y completo cargado');

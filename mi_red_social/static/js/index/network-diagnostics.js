@@ -122,8 +122,8 @@ window.verificarEstadoSistema = function() {
 async function probarConectividadServidor() {
     const endpoints = [
         { url: '/api/grafo', nombre: 'API Grafo' },
-        { url: '/obtener_posiciones', nombre: 'Posiciones' },
-        { url: '/obtener_grupos_personas', nombre: 'Grupos' }
+        { url: '/api/posiciones', nombre: 'Posiciones' },
+        { url: '/api/obtener_grupos_personas', nombre: 'Grupos' }
     ];
     
     console.log('🧪 Probando conectividad con servidor...');

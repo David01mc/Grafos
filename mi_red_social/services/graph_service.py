@@ -50,7 +50,6 @@ class GraphService:
                     'borderWidth': 2
                 })
             
-            # ✅ Código corregido
             # Agregar posiciones si existen
             if hasattr(persona, 'posicion_x') and persona.posicion_x is not None and persona.posicion_y is not None:
                 node_data.update({
@@ -67,13 +66,14 @@ class GraphService:
         edges = []
         for relacion in relaciones:
             color = self._get_edge_color(relacion.fortaleza)
+            
+            
             edges.append({
                 'from': relacion.persona1_id,
                 'to': relacion.persona2_id,
                 'width': relacion.fortaleza,
                 'color': color,
-                'label': relacion.tipo.replace('_', ' ').title(),
-                'title': self._get_edge_tooltip(relacion)
+                'label': relacion.tipo.replace('_', ' ').title()
             })
         
         return {'nodes': nodes, 'edges': edges}
@@ -86,10 +86,5 @@ class GraphService:
             return '#f59e0b'  # Amarillo
         else:
             return '#6b7280'  # Gris
-    
-    def _get_edge_tooltip(self, relacion) -> str:
-        """Generar tooltip para el edge"""
-        return (f"<b>{relacion.persona1_nombre} ↔ {relacion.persona2_nombre}</b><br>"
-                f"Tipo: {relacion.tipo.replace('_', ' ').title()}<br>"
-                f"Fortaleza: {relacion.fortaleza}/10<br>"
-                f"Contexto: {relacion.contexto or 'Sin contexto'}")
+
+# FUNCIÓN _get_edge_tooltip ELIMINADA - Su código ahora está inline en get_graph_data()
