@@ -14,3 +14,15 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(grafo_bp, url_prefix='/api')
     app.register_blueprint(personas_bp, url_prefix='/api')
     app.register_blueprint(relaciones_bp, url_prefix='/api')
+    
+    # ✅ AGREGAR RUTAS ADICIONALES PARA COMPATIBILIDAD
+    # Registrar algunas rutas sin prefijo para compatibilidad con JS existente
+    @app.route('/obtener_grupos_personas')
+    def obtener_grupos_personas_compat():
+        from api.grafo import obtener_grupos_personas
+        return obtener_grupos_personas()
+    
+    @app.route('/obtener_imagenes')
+    def obtener_imagenes_compat():
+        from api.grafo import obtener_imagenes
+        return obtener_imagenes()
