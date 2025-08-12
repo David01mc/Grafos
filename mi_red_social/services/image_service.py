@@ -1,6 +1,4 @@
-# =================================================================
-# services/image_service.py - Servicio de manejo de imágenes
-# =================================================================
+# services/image_service.py - Servicio de manejo de imágenes CORREGIDO
 
 import os
 import uuid
@@ -9,16 +7,22 @@ from typing import Tuple, Optional
 from werkzeug.utils import secure_filename
 from werkzeug.datastructures import FileStorage
 from PIL import Image
-from config import Config
 
 class ImageService:
     """Servicio para el manejo de imágenes"""
     
-    def __init__(self, config: Config):
-        self.allowed_extensions = config.ALLOWED_EXTENSIONS
-        self.max_file_size = config.MAX_FILE_SIZE
-        self.image_size = config.IMAGE_SIZE
-        self.images_folder = config.IMAGES_FOLDER
+    def __init__(self, config):
+        # CORREGIDO: Acceder a la configuración de manera segura
+        self.allowed_extensions = getattr(config, 'ALLOWED_EXTENSIONS', {'png', 'jpg', 'jpeg', 'gif', 'webp'})
+        self.max_file_size = getattr(config, 'MAX_FILE_SIZE', 5 * 1024 * 1024)
+        self.image_size = getattr(config, 'IMAGE_SIZE', (150, 150))
+        
+        # CORREGIDO: Manejar tanto Path como string
+        images_folder = getattr(config, 'IMAGES_FOLDER', 'static/images/users')
+        if isinstance(images_folder, str):
+            self.images_folder = Path(images_folder)
+        else:
+            self.images_folder = images_folder
     
     def is_allowed_file(self, filename: str) -> bool:
         """Verificar si el archivo tiene una extensión permitida"""

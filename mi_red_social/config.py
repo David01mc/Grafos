@@ -1,7 +1,4 @@
-# =================================================================
-# config.py - Configuraciones centralizadas
-# =================================================================
-
+# config.py - Configuración corregida
 import os
 from pathlib import Path
 
@@ -15,11 +12,11 @@ class Config:
     BASE_DIR = Path(__file__).parent
     DATABASE_PATH = BASE_DIR / 'red_social.db'
     
-    # Imágenes
+    # Imágenes - CORREGIDO: Convertir Path a string para Flask
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
     MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
     IMAGE_SIZE = (150, 150)
-    IMAGES_FOLDER = BASE_DIR / 'static' / 'images' / 'users'
+    IMAGES_FOLDER = str(BASE_DIR / 'static' / 'images' / 'users')  # ← Convertir a string
     
     # Configuraciones de Flask
     JSON_AS_ASCII = False

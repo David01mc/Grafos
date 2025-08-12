@@ -1,6 +1,4 @@
-# =================================================================
-# app.py - Punto de entrada principal
-# =================================================================
+# app.py - Fix para configuración
 
 from flask import Flask
 from config import Config
@@ -22,12 +20,27 @@ def create_app(config_class=Config):
     
     app.config.from_object(config_class)
     
+    # CORREGIDO: Asegurar que las configuraciones estén disponibles
+    # Convertir Path a string si es necesario
+    if hasattr(config_class, 'DATABASE_PATH') and isinstance(config_class.DATABASE_PATH, Path):
+        app.config['DATABASE_PATH'] = str(config_class.DATABASE_PATH)
+    
+    if hasattr(config_class, 'IMAGES_FOLDER') and isinstance(config_class.IMAGES_FOLDER, Path):
+        app.config['IMAGES_FOLDER'] = str(config_class.IMAGES_FOLDER)
+    
+    # Debug: Imprimir configuraciones para verificar
+    print("🔧 Configuraciones de la app:")
+    print(f"  - DATABASE_PATH: {app.config.get('DATABASE_PATH')}")
+    print(f"  - IMAGES_FOLDER: {app.config.get('IMAGES_FOLDER')}")
+    print(f"  - ALLOWED_EXTENSIONS: {app.config.get('ALLOWED_EXTENSIONS')}")
+    print(f"  - MAX_FILE_SIZE: {app.config.get('MAX_FILE_SIZE')}")
+    
     # Inicializar base de datos
     if not os.path.exists(app.config['DATABASE_PATH']):
         init_db(app.config['DATABASE_PATH'])
     
     # Crear directorio de imágenes
-    create_images_directory(app.config['IMAGES_FOLDER'])
+    create_images_directory(Path(app.config['IMAGES_FOLDER']))
     
     # Registrar blueprints
     register_blueprints(app)
