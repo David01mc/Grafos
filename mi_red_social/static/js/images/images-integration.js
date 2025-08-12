@@ -201,7 +201,7 @@ function modificarGuardadoNodo() {
                     imagenFormData.append('imagen', inputImagen.files[0]);
                     
                     try {
-                        const imagenResponse = await fetch(`/api/personas/${personaId}`, {
+                        const imagenResponse = await fetch(`/api/personas/${personaId}/imagen`, {
                             method: 'POST',
                             body: imagenFormData
                         });

@@ -258,7 +258,7 @@ async function subirImagenNodo(personaId, file) {
         formData.append('imagen', file);
         
         // Subir imagen
-        const response = await fetch(`/api/personas/${personaId}`, {
+        const response = await fetch(`/api/personas/${personaId}/imagen`, {
             method: 'POST',
             body: formData
         });
@@ -299,7 +299,7 @@ async function eliminarImagenNodo(personaId) {
     try {
         console.log(`🗑️ Eliminando imagen de la persona ${personaId}...`);
         
-        const response = await fetch(`/api/personas/${personaId}`, {
+        const response = await fetch(`/api/personas/${personaId}/imagen`, {
             method: 'DELETE'
         });
         
