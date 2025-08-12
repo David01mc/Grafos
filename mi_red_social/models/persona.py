@@ -35,28 +35,28 @@ class Persona:
             'fecha_creacion': self.fecha_creacion
         }
     
-@classmethod
-def from_row(cls, row: Any) -> 'Persona':
-    """Crear instancia desde fila de base de datos - VERSIÓN SEGURA"""
-    if not row:
-        return cls()
-    
-    try:
-        return cls(
-            id=row['id'],
-            nombre=row['nombre'] or "",
-            icono=row['icono'] or "user",
-            grupo=row['grupo'] or "contactos",
-            color=row['color'] or "#3b82f6",
-            descripcion=row['descripcion'] or "",
-            posicion_x=row['posicion_x'] if row['posicion_x'] is not None else None,
-            posicion_y=row['posicion_y'] if row['posicion_y'] is not None else None,
-            imagen_url=row['imagen_url'] if row['imagen_url'] is not None else None,
-            fecha_creacion=row['fecha_creacion'] if row['fecha_creacion'] is not None else None
-        )
-    except (KeyError, TypeError) as e:
-        print(f"⚠️ Error creando Persona desde row: {e}")
-        return cls()
+    @classmethod
+    def from_row(cls, row: Any) -> 'Persona':
+        """Crear instancia desde fila de base de datos - VERSIÓN SEGURA"""
+        if not row:
+            return cls()
+        
+        try:
+            return cls(
+                id=row['id'],
+                nombre=row['nombre'] or "",
+                icono=row['icono'] or "user",
+                grupo=row['grupo'] or "contactos",
+                color=row['color'] or "#3b82f6",
+                descripcion=row['descripcion'] or "",
+                posicion_x=row['posicion_x'] if row['posicion_x'] is not None else None,
+                posicion_y=row['posicion_y'] if row['posicion_y'] is not None else None,
+                imagen_url=row['imagen_url'] if row['imagen_url'] is not None else None,
+                fecha_creacion=row['fecha_creacion'] if row['fecha_creacion'] is not None else None
+            )
+        except (KeyError, TypeError) as e:
+            print(f"⚠️ Error creando Persona desde row: {e}")
+            return cls()
 
 class PersonaRepository:
     """Repositorio para operaciones con Personas"""

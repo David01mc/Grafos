@@ -33,29 +33,29 @@ class Relacion:
             'persona2_nombre': self.persona2_nombre
         }
     
-@classmethod
-def from_row(cls, row: Any) -> 'Relacion':
-    """Crear instancia desde fila de base de datos - VERSIÓN SEGURA"""
-    if not row:
-        return cls()
-    
-    try:
-        return cls(
-            id=row['id'],
-            persona1_id=row['persona1_id'] or 0,
-            persona2_id=row['persona2_id'] or 0,
-            tipo=row['tipo'] or "profesional",
-            fortaleza=row['fortaleza'] or 5,
-            contexto=row['contexto'] or "",
-            fecha_creacion=row['fecha_creacion'],
-            # Para las consultas con JOIN, usar acceso directo con manejo de errores
-            persona1_nombre=row['persona1_nombre'] if 'persona1_nombre' in row.keys() else None,
-            persona2_nombre=row['persona2_nombre'] if 'persona2_nombre' in row.keys() else None
-        )
-    except (KeyError, TypeError) as e:
-        print(f"⚠️ Error creando Relación desde row: {e}")
-        return cls()
-    
+    @classmethod
+    def from_row(cls, row: Any) -> 'Relacion':
+        """Crear instancia desde fila de base de datos - VERSIÓN SEGURA"""
+        if not row:
+            return cls()
+        
+        try:
+            return cls(
+                id=row['id'],
+                persona1_id=row['persona1_id'] or 0,
+                persona2_id=row['persona2_id'] or 0,
+                tipo=row['tipo'] or "profesional",
+                fortaleza=row['fortaleza'] or 5,
+                contexto=row['contexto'] or "",
+                fecha_creacion=row['fecha_creacion'],
+                # Para las consultas con JOIN, usar acceso directo con manejo de errores
+                persona1_nombre=row['persona1_nombre'] if 'persona1_nombre' in row.keys() else None,
+                persona2_nombre=row['persona2_nombre'] if 'persona2_nombre' in row.keys() else None
+            )
+        except (KeyError, TypeError) as e:
+            print(f"⚠️ Error creando Relación desde row: {e}")
+            return cls()
+
 class RelacionRepository:
     """Repositorio para operaciones con Relaciones"""
     
