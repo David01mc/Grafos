@@ -91,7 +91,14 @@
 {% block scripts %}
 <!-- Incluir archivos JavaScript principales -->
 <script src="{{ url_for('static', filename='js/create-node.js') }}"></script>
-<script src="{{ url_for('static', filename='js/create-edge.js') }}"></script>
+
+<!-- Incluir archivos JavaScript Aristas-->
+<script src="{{ url_for('static', filename='js/crear relaciones/EdgeLoad-button.js') }}"></script>
+<script src="{{ url_for('static', filename='js/crear relaciones/EdgeArista.js') }}"></script>
+<script src="{{ url_for('static', filename='js/crear relaciones/EdgeEvents.js') }}"></script>
+<script src="{{ url_for('static', filename='js/crear relaciones/EdgeValidation.js') }}"></script>
+<script src="{{ url_for('static', filename='js/crear relaciones/EdgeEndDebug.js') }}"></script>
+
 <script src="{{ url_for('static', filename='js/accessibility-fixes.js') }}"></script>
 <script src="{{ url_for('static', filename='js/aria-hidden-fix.js') }}"></script>
 <script src="{{ url_for('static', filename='js/positions.js') }}"></script>
