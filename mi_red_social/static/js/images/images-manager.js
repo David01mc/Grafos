@@ -167,8 +167,18 @@ async function cargarImagenesDisponibles() {
     }
 }
 
-// Función para aplicar imágenes a los nodos del grafo
+// Cerca de la línea donde defines aplicarImagenesANodos
 function aplicarImagenesANodos() {
+    // Usar la versión optimizada para canvas si está disponible
+    if (typeof aplicarImagenesANodosCanvas === 'function') {
+        aplicarImagenesANodosCanvas();
+    } else {
+        // Fallback a la versión original
+        aplicarImagenesANodosOriginal();
+    }
+}
+
+function aplicarImagenesANodosOriginal() {
     if (!verificarContextoGrafo()) {
         console.log('📝 Contexto de grafo no disponible para aplicar imágenes');
         return;
